@@ -74,13 +74,15 @@ class Preprocessor:
                 tg_path = os.path.join(
                     self.out_dir, "TextGrid", speaker, "{}.TextGrid".format(basename)
                 )
-                if os.path.exists(tg_path):
-                    ret = self.process_utterance(speaker, basename)
-                    if ret is None:
-                        continue
-                    else:
-                        info, pitch, energy, n = ret
-                    out.append(info)
+                if not os.path.exists(tg_path):
+                    continue
+
+                ret = self.process_utterance(speaker, basename)
+                if ret is None:
+                    continue
+
+                info, pitch, energy, n = ret
+                out.append(info)
 
                 if len(pitch) > 0:
                     pitch_scaler.partial_fit(pitch.reshape((-1, 1)))
@@ -88,6 +90,12 @@ class Preprocessor:
                     energy_scaler.partial_fit(energy.reshape((-1, 1)))
 
                 n_frames += n
+
+        if len(out) == 0:
+            raise RuntimeError(
+                "No utterances were processed. Check raw_path, preprocessed_path, "
+                "and TextGrid alignments under {}/TextGrid.".format(self.out_dir)
+            )
 
         print("Computing statistic quantities ...")
         # Perform normalization if necessary

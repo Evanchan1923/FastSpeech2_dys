@@ -1,0 +1,25 @@
+source:
+  corpus_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_subset/SPAC_subset001/dev"
+  split: "dev"
+  id_field: "id"
+  speaker_field: "speaker"
+  text_field: "norm_text_with_disfluency"
+  speaker_filter: "${SAPC_SPEAKER}"
+
+generation:
+  restore_step: "latest"
+  sample_count: 100
+  selection: "first"
+  seed: 1234
+  batch_size: 8
+  skip_unknown_speakers: True
+
+output:
+  subdir: "dev_samples"
+  include_step_subdir: True
+  filename_prefix: "sapc_dev"
+
+control:
+  pitch: 1.0
+  energy: 1.0
+  duration: 1.0

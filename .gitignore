@@ -113,6 +113,16 @@ montreal-forced-aligner/
 # data, checkpoint, and models
 raw_data/
 output/
+temp/
+preprocessed_data/
 *.npy
 TextGrid/
 hifigan/*.pth.tar
+hifigan/*.pth.tar.zip
+*.ckpt
+*.pt
+*.pth
+*.pth.tar
+*.tar
+*.tar.gz
+*.zip

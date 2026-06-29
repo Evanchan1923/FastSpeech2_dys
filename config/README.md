@@ -1,29 +1,23 @@
 # Config
-Here are the config files used to train the single/multi-speaker TTS models.
-4 different configurations are given:
-- LJSpeech: suggested configuration for LJSpeech dataset.
-- LibriTTS: suggested configuration for LibriTTS dataset.
-- AISHELL3: suggested configuration for AISHELL-3 dataset.
-- LJSpeech_paper: closed to the setting proposed in the original FastSpeech 2 paper.
 
-Some important hyper-parameters are explained here.
+This repo is configured for per-speaker SAPC dysarthric FastSpeech2 training.
+Set the speaker in `SAPC_subset001/run.yaml`, then submit `qsub fastSpeech2_v1.pbs`.
 
-## preprocess.yaml
-- **path.lexicon_path**: the lexicon (which maps words to phonemes) used by Montreal Forced Aligner. 
-  We provide an English lexicon and a Mandarin lexicon. 
-  Erhua (ㄦ化音) is handled in the Mandarin lexicon.
-- **mel.stft.mel_fmax**: set it to 8000 if HiFi-GAN vocoder is used, and set it to null if MelGAN is used.
-- **pitch.feature & energy.feature**: the original paper proposed to predict and apply frame-level pitch and energy features to the inputs of the TTS decoder to control the pitch and energy of the synthesized utterances. 
-  However, in our experiments, we find that using phoneme-level features makes the prosody of the synthesized utterances more natural.
-- **pitch.normalization & energy.normalization**: to normalize the pitch and energy values or not. 
-  The original paper did not normalize these values.
+## Active Config
 
-## train.yaml
-- **optimizer.grad_acc_step**: the number of batches of gradient accumulation before updating the model parameters and call optimizer.zero_grad(), which is useful if you wish to train the model with a large batch size but you do not have sufficient GPU memory.
-- **optimizer.anneal_steps & optimizer.anneal_rate**: the learning rate is reduced at the **anneal_steps** by the ratio specified with **anneal_rate**.
+- `SAPC_subset001/preprocess.yaml`: HuggingFace SAPC input path, FastSpeech2 raw/preprocessed paths, text/audio preprocessing.
+- `SAPC_subset001/model.yaml`: FastSpeech2 model and HiFi-GAN vocoder settings.
+- `SAPC_subset001/train.yaml`: optimizer settings and output paths.
+- `SAPC_subset001/gen.yaml`: SAPC dev split generation settings, including sample count and output subfolder.
+- `SAPC_subset001/run.yaml`: speaker, stage toggles, pretrained checkpoint, and MFA settings.
 
-## model.yaml
-- **transformer.decoder_layer**: the original paper used a 4-layer decoder, but we find it better to use a 6-layer decoder, especially for multi-speaker TTS.
-- **variance_embedding.pitch_quantization**: when the pitch values are normalized as specified in ``preprocess.yaml``, it is not valid to use log-scale quantization bins as proposed in the original paper, so we use linear-scaled bins instead. 
-- **multi_speaker**: to apply a speaker embedding table to enable multi-speaker TTS or not.
-- **vocoder.speaker**: should be set to 'universal' if any dataset other than LJSpeech is used.
+The model config uses `multi_speaker: False`, so each run trains/fine-tunes one
+speaker only.
+
+## Server Paths
+
+- Model/vocoder assets: `/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model`
+- Training outputs: `/srv/scratch/speechdata/jinghao/fastSpeech2_result`
+- Training data/intermediate files: `/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS`
+
+The PBS script reads these paths from the YAML files at runtime.

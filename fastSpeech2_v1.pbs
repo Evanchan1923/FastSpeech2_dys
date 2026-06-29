@@ -1,0 +1,173 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=2:ngpus=2:mem=42gb
+#PBS -l walltime=32:00:00
+#PBS -M z5327748@ad.unsw.edu.au
+#PBS -m abe
+#PBS -j oe
+#PBS -N fastspeech2_v1
+#PBS -o fastspeech2_v1.log
+
+set -euo pipefail
+
+cd "${PBS_O_WORKDIR:-$PWD}"
+
+CONFIG_DIR="${CONFIG_DIR:-config/SAPC_subset001}"
+PREPROCESS_CONFIG="${PREPROCESS_CONFIG:-${CONFIG_DIR}/preprocess.yaml}"
+MODEL_CONFIG="${MODEL_CONFIG:-${CONFIG_DIR}/model.yaml}"
+TRAIN_CONFIG="${TRAIN_CONFIG:-${CONFIG_DIR}/train.yaml}"
+GEN_CONFIG="${GEN_CONFIG:-${CONFIG_DIR}/gen.yaml}"
+RUN_CONFIG="${RUN_CONFIG:-${CONFIG_DIR}/run.yaml}"
+
+export PYTHONUNBUFFERED=1
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-${PBS_NCPUS:-2}}"
+export FASTSPEECH2_MODEL_ROOT="${FASTSPEECH2_MODEL_ROOT:-/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model}"
+
+module load python/3.10.8
+module load ffmpeg/7.0.2
+module load cuda/12.1.1
+
+eval "$(
+  python - "${RUN_CONFIG}" <<'PY'
+import shlex
+import sys
+
+from utils.config import load_config
+
+
+def as_flag(value):
+    return "1" if bool(value) else "0"
+
+
+def emit(name, value, export=False):
+    prefix = "export " if export else ""
+    print("{}{}={}".format(prefix, name, shlex.quote(str(value))))
+
+
+run_config = load_config(sys.argv[1])
+speaker = str(run_config.get("speaker", "")).strip()
+if speaker in ("", "CHANGE_ME", "<speaker_id>"):
+    raise SystemExit("Set config/SAPC_subset001/run.yaml speaker before qsub.")
+
+stages = run_config.get("stages", {})
+training = run_config.get("training", {})
+generation = run_config.get("generation", {})
+mfa = run_config.get("mfa", {})
+
+emit("SAPC_SPEAKER", speaker, export=True)
+emit("VENV_DIR", run_config.get("venv_dir", "/srv/scratch/z5327748/venv/FastSpeech_tts"))
+emit("RUN_PREPARE_ALIGN", as_flag(stages.get("prepare_align", True)))
+emit("RUN_MFA", as_flag(stages.get("mfa", True)))
+emit("RUN_PREPROCESS", as_flag(stages.get("preprocess", True)))
+emit("RUN_TRAIN", as_flag(stages.get("train", True)))
+emit("RUN_GENERATE", as_flag(stages.get("generate", True)))
+emit("RESTORE_STEP", training.get("restore_step", 0))
+emit("PRETRAINED_CHECKPOINT", training.get("pretrained_checkpoint") or "")
+emit("GENERATE_RESTORE_STEP", generation.get("restore_step", "latest"))
+emit("MFA_BIN", mfa.get("bin", "mfa"))
+emit("MFA_ACOUSTIC_MODEL", mfa.get("acoustic_model", "english"))
+emit("MFA_DICTIONARY_OVERRIDE", mfa.get("dictionary") or "")
+PY
+)"
+
+source "${VENV_DIR}/bin/activate"
+
+eval "$(
+  python - "${PREPROCESS_CONFIG}" "${MODEL_CONFIG}" "${TRAIN_CONFIG}" <<'PY'
+import shlex
+import sys
+
+from utils.config import load_configs
+
+preprocess_config, _, train_config = load_configs(sys.argv[1], sys.argv[2], sys.argv[3])
+paths = {
+    "DATASET_NAME": preprocess_config["dataset"],
+    "CORPUS_PATH": preprocess_config["path"]["corpus_path"],
+    "LEXICON_PATH": preprocess_config["path"]["lexicon_path"],
+    "RAW_PATH": preprocess_config["path"]["raw_path"],
+    "PREPROCESSED_PATH": preprocess_config["path"]["preprocessed_path"],
+    "CKPT_PATH": train_config["path"]["ckpt_path"],
+    "LOG_PATH": train_config["path"]["log_path"],
+    "RESULT_PATH": train_config["path"]["result_path"],
+}
+for key, value in paths.items():
+    print("{}={}".format(key, shlex.quote(str(value))))
+PY
+)"
+
+MFA_DICTIONARY="${MFA_DICTIONARY:-${LEXICON_PATH}}"
+if [[ -n "${MFA_DICTIONARY_OVERRIDE}" ]]; then
+  MFA_DICTIONARY="${MFA_DICTIONARY_OVERRIDE}"
+fi
+
+echo "Job started at: $(date)"
+echo "Job ID: ${PBS_JOBID:-unknown}"
+echo "Host: $(hostname)"
+echo "Dataset: ${DATASET_NAME}"
+echo "SAPC speaker: ${SAPC_SPEAKER}"
+echo "Raw path: ${RAW_PATH}"
+echo "Preprocessed path: ${PREPROCESSED_PATH}"
+echo "Checkpoint path: ${CKPT_PATH}"
+echo "Result path: ${RESULT_PATH}"
+echo "Run config: ${RUN_CONFIG}"
+echo "Generation config: ${GEN_CONFIG}"
+echo "Stages: prepare_align=${RUN_PREPARE_ALIGN} mfa=${RUN_MFA} preprocess=${RUN_PREPROCESS} train=${RUN_TRAIN} generate=${RUN_GENERATE}"
+
+mkdir -p \
+  "${RAW_PATH}" \
+  "${PREPROCESSED_PATH}" \
+  "${CKPT_PATH}" \
+  "${LOG_PATH}" \
+  "${RESULT_PATH}"
+
+if command -v nvidia-smi >/dev/null 2>&1; then
+  nvidia-smi
+fi
+
+if [[ "${RUN_PREPARE_ALIGN}" == "1" ]]; then
+  echo "[INFO] Running utils/server-based/prepare_align.py"
+  python utils/server-based/prepare_align.py "${PREPROCESS_CONFIG}"
+fi
+
+if [[ "${RUN_MFA}" == "1" ]]; then
+  echo "[INFO] Running Montreal Forced Aligner"
+  "${MFA_BIN}" align \
+    "${RAW_PATH}" \
+    "${MFA_DICTIONARY}" \
+    "${MFA_ACOUSTIC_MODEL}" \
+    "${PREPROCESSED_PATH}" \
+    --clean \
+    --overwrite
+fi
+
+if [[ "${RUN_PREPROCESS}" == "1" ]]; then
+  echo "[INFO] Running utils/server-based/preprocess.py"
+  python utils/server-based/preprocess.py "${PREPROCESS_CONFIG}"
+fi
+
+if [[ "${RUN_TRAIN}" == "1" ]]; then
+  echo "[INFO] Running FastSpeech2 training"
+  TRAIN_ARGS=(
+    --restore_step "${RESTORE_STEP}" \
+    -p "${PREPROCESS_CONFIG}" \
+    -m "${MODEL_CONFIG}" \
+    -t "${TRAIN_CONFIG}"
+  )
+  if [[ -n "${PRETRAINED_CHECKPOINT}" ]]; then
+    TRAIN_ARGS+=(--pretrained_checkpoint "${PRETRAINED_CHECKPOINT}")
+  fi
+  python utils/server-based/train.py "${TRAIN_ARGS[@]}"
+else
+  echo "[INFO] RUN_TRAIN=0, skipping FastSpeech2 training"
+fi
+
+if [[ "${RUN_GENERATE}" == "1" ]]; then
+  echo "[INFO] Generating SAPC dev samples"
+  python utils/server-based/generate_sapc_samples.py \
+    --restore_step "${GENERATE_RESTORE_STEP}" \
+    -p "${PREPROCESS_CONFIG}" \
+    -m "${MODEL_CONFIG}" \
+    -t "${TRAIN_CONFIG}" \
+    -g "${GEN_CONFIG}"
+fi
+
+echo "Job finished at: $(date)"

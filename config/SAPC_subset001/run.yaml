@@ -1,0 +1,22 @@
+speaker: "CHANGE_ME"
+
+venv_dir: "/srv/scratch/z5327748/venv/FastSpeech_tts"
+
+stages:
+  prepare_align: True
+  mfa: True
+  preprocess: True
+  train: True
+  generate: True
+
+training:
+  restore_step: 0
+  pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"
+
+generation:
+  restore_step: "latest"
+
+mfa:
+  bin: "mfa"
+  acoustic_model: "english"
+  dictionary: null
