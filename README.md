@@ -4,7 +4,7 @@ This repo is the code/config/PBS submission package for training FastSpeech2 on 
 SAPC dysarthric HuggingFace dataset.
 
 For the end-to-end pipeline explanation and speaker-mixing guidance, see
-`PIPELINE_SUMMARY.md`.
+`docs/PIPELINE_SUMMARY.md`.
 
 ## Server Layout
 

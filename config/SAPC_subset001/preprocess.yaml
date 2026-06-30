@@ -2,7 +2,7 @@ dataset: "SAPC_Dysarthric"
 
 path:
   corpus_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_subset/SPAC_subset001/train"
-  lexicon_path: "lexicon/librispeech-lexicon.txt"
+  lexicon_path: "text/lexicon/librispeech-lexicon.txt"
   raw_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS/raw_data/SPAC_subset001/${SAPC_SPEAKER}"
   preprocessed_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS/preprocessed_data/SPAC_subset001/${SAPC_SPEAKER}"
 

@@ -6,7 +6,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from preprocessor import ljspeech, aishell3, libritts, sapc_hf
+from speech.preprocessor import ljspeech, aishell3, libritts, sapc_hf
 from utils.config import load_preprocess_config
 
 

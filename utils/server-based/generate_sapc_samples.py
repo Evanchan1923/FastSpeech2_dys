@@ -17,7 +17,7 @@ import torch
 from g2p_en import G2p
 from tqdm import tqdm
 
-from preprocessor.sapc_hf import (
+from speech.preprocessor.sapc_hf import (
     TEXT_FIELD_FALLBACKS,
     _load_dataset,
     _sanitize,

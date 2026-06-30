@@ -6,13 +6,13 @@ from zipfile import ZipFile
 import torch
 import numpy as np
 
-import hifigan
+import speech.hifigan as hifigan
 from model import FastSpeech2, ScheduledOptim
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL_ROOT = Path("/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model")
-REPO_HIFIGAN_DIR = REPO_ROOT / "hifigan"
+REPO_HIFIGAN_DIR = REPO_ROOT / "speech" / "hifigan"
 
 
 def _hifigan_dirs():
