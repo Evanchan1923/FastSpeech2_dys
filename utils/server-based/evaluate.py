@@ -99,13 +99,13 @@ if __name__ == "__main__":
         "--preprocess_config",
         type=str,
         required=True,
-        help="path to preprocess.yaml",
+        help="path to preprocess.yaml or unified config",
     )
     parser.add_argument(
-        "-m", "--model_config", type=str, required=True, help="path to model.yaml"
+        "-m", "--model_config", type=str, required=True, help="path to model.yaml or unified config"
     )
     parser.add_argument(
-        "-t", "--train_config", type=str, required=True, help="path to train.yaml"
+        "-t", "--train_config", type=str, required=True, help="path to train.yaml or unified config"
     )
     args = parser.parse_args()
 

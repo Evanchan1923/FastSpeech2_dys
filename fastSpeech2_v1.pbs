@@ -12,11 +12,14 @@ set -euo pipefail
 cd "${PBS_O_WORKDIR:-$PWD}"
 
 CONFIG_DIR="${CONFIG_DIR:-config/SAPC_subset001}"
-PREPROCESS_CONFIG="${PREPROCESS_CONFIG:-${CONFIG_DIR}/preprocess.yaml}"
-MODEL_CONFIG="${MODEL_CONFIG:-${CONFIG_DIR}/model.yaml}"
-TRAIN_CONFIG="${TRAIN_CONFIG:-${CONFIG_DIR}/train.yaml}"
-GEN_CONFIG="${GEN_CONFIG:-${CONFIG_DIR}/gen.yaml}"
-RUN_CONFIG="${RUN_CONFIG:-${CONFIG_DIR}/run.yaml}"
+CONFIG_FILE="${CONFIG_FILE:-${CONFIG_DIR}/fastSpeech2_v1.yaml}"
+PREPROCESS_CONFIG="${PREPROCESS_CONFIG:-${CONFIG_FILE}}"
+MODEL_CONFIG="${MODEL_CONFIG:-${CONFIG_FILE}}"
+TRAIN_CONFIG="${TRAIN_CONFIG:-${CONFIG_FILE}}"
+GEN_CONFIG="${GEN_CONFIG:-${CONFIG_FILE}}"
+RUN_CONFIG="${RUN_CONFIG:-${CONFIG_FILE}}"
+RESOURCES_CONFIG="${RESOURCES_CONFIG:-${CONFIG_FILE}}"
+DEFAULT_VENV_DIR="${DEFAULT_VENV_DIR:-/srv/scratch/z5327748/venv/FastSpeech_tts}"
 
 export PYTHONUNBUFFERED=1
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-${PBS_NCPUS:-2}}"
@@ -26,8 +29,11 @@ module load python/3.10.8
 module load ffmpeg/7.0.2
 module load cuda/12.1.1
 
+source "${DEFAULT_VENV_DIR}/bin/activate"
+
 eval "$(
-  python - "${RUN_CONFIG}" <<'PY'
+  python - "${RUN_CONFIG}" "${RESOURCES_CONFIG}" "${DEFAULT_VENV_DIR}" <<'PY'
+import os
 import shlex
 import sys
 
@@ -43,18 +49,30 @@ def emit(name, value, export=False):
     print("{}{}={}".format(prefix, name, shlex.quote(str(value))))
 
 
-run_config = load_config(sys.argv[1])
+run_config = load_config(sys.argv[1], "run")
+resources_config = load_config(sys.argv[2], "resources") if os.path.exists(sys.argv[2]) else {}
 speaker = str(run_config.get("speaker", "")).strip()
 if speaker in ("", "CHANGE_ME", "<speaker_id>"):
-    raise SystemExit("Set config/SAPC_subset001/run.yaml speaker before qsub.")
+    raise SystemExit("Set run.speaker in config/SAPC_subset001/fastSpeech2_v1.yaml before qsub.")
 
 stages = run_config.get("stages", {})
 training = run_config.get("training", {})
 generation = run_config.get("generation", {})
 mfa = run_config.get("mfa", {})
+pbs_resources = resources_config.get("pbs", {})
+runtime_resources = resources_config.get("runtime", {})
+ncpu = runtime_resources.get("ncpu", pbs_resources.get("ncpus", os.environ.get("PBS_NCPUS", 2)))
+ngpu = runtime_resources.get("ngpu", pbs_resources.get("ngpus", 0))
+omp_num_threads = runtime_resources.get("omp_num_threads", ncpu)
+num_workers = runtime_resources.get("data_loader_num_workers")
 
 emit("SAPC_SPEAKER", speaker, export=True)
-emit("VENV_DIR", run_config.get("venv_dir", "/srv/scratch/z5327748/venv/FastSpeech_tts"))
+emit("FASTSPEECH2_NCPU", ncpu, export=True)
+emit("FASTSPEECH2_NGPU", ngpu, export=True)
+emit("OMP_NUM_THREADS", omp_num_threads, export=True)
+if num_workers is not None:
+    emit("FASTSPEECH2_NUM_WORKERS", num_workers, export=True)
+emit("VENV_DIR", run_config.get("venv_dir", sys.argv[3]))
 emit("RUN_PREPARE_ALIGN", as_flag(stages.get("prepare_align", True)))
 emit("RUN_MFA", as_flag(stages.get("mfa", True)))
 emit("RUN_PREPROCESS", as_flag(stages.get("preprocess", True)))
@@ -69,7 +87,9 @@ emit("MFA_DICTIONARY_OVERRIDE", mfa.get("dictionary") or "")
 PY
 )"
 
-source "${VENV_DIR}/bin/activate"
+if [[ "${VENV_DIR}" != "${DEFAULT_VENV_DIR}" ]]; then
+  source "${VENV_DIR}/bin/activate"
+fi
 
 eval "$(
   python - "${PREPROCESS_CONFIG}" "${MODEL_CONFIG}" "${TRAIN_CONFIG}" <<'PY'
@@ -99,18 +119,13 @@ if [[ -n "${MFA_DICTIONARY_OVERRIDE}" ]]; then
   MFA_DICTIONARY="${MFA_DICTIONARY_OVERRIDE}"
 fi
 
-echo "Job started at: $(date)"
-echo "Job ID: ${PBS_JOBID:-unknown}"
-echo "Host: $(hostname)"
-echo "Dataset: ${DATASET_NAME}"
-echo "SAPC speaker: ${SAPC_SPEAKER}"
-echo "Raw path: ${RAW_PATH}"
-echo "Preprocessed path: ${PREPROCESSED_PATH}"
-echo "Checkpoint path: ${CKPT_PATH}"
-echo "Result path: ${RESULT_PATH}"
-echo "Run config: ${RUN_CONFIG}"
-echo "Generation config: ${GEN_CONFIG}"
-echo "Stages: prepare_align=${RUN_PREPARE_ALIGN} mfa=${RUN_MFA} preprocess=${RUN_PREPROCESS} train=${RUN_TRAIN} generate=${RUN_GENERATE}"
+if [[ -n "${PBS_NCPUS:-}" && "${FASTSPEECH2_NCPU}" != "${PBS_NCPUS}" ]]; then
+  echo "[WARN] resources.runtime.ncpu=${FASTSPEECH2_NCPU} but PBS_NCPUS=${PBS_NCPUS}."
+fi
+
+if [[ -n "${PBS_NGPUS:-}" && "${FASTSPEECH2_NGPU}" != "${PBS_NGPUS}" ]]; then
+  echo "[WARN] resources.runtime.ngpu=${FASTSPEECH2_NGPU} but PBS_NGPUS=${PBS_NGPUS}."
+fi
 
 mkdir -p \
   "${RAW_PATH}" \

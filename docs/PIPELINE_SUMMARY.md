@@ -26,8 +26,9 @@ before raw audio conversion, preprocessing, training, and dev-set generation.
 In the current workflow, set the speaker once in:
 
 ```yaml
-config/SAPC_subset001/run.yaml
-speaker: "<speaker_id>"
+config/SAPC_subset001/fastSpeech2_v1.yaml
+run:
+  speaker: "<speaker_id>"
 ```
 
 Then submit:
@@ -59,18 +60,17 @@ Training/intermediate data:
 Active configs:
 
 ```text
-config/SAPC_subset001/preprocess.yaml
-config/SAPC_subset001/model.yaml
-config/SAPC_subset001/train.yaml
-config/SAPC_subset001/gen.yaml
-config/SAPC_subset001/run.yaml
+config/SAPC_subset001/fastSpeech2_v1.yaml
 ```
+
+The combined config contains `run`, `resources`, `preprocess`, `model`, `train`,
+and `gen` sections.
 
 ## Pipeline Stages
 
 ### 1. Convert HuggingFace Rows To FastSpeech2 Raw Format
 
-Enabled by `stages.prepare_align: True` in `run.yaml`.
+Enabled by `run.stages.prepare_align: True`.
 
 Input:
 
@@ -91,7 +91,7 @@ resampling.
 
 ### 2. Forced Alignment
 
-Enabled by `stages.mfa: True` in `run.yaml`.
+Enabled by `run.stages.mfa: True`.
 
 MFA aligns `.wav` and `.lab` files and writes TextGrid alignments:
 
@@ -124,7 +124,7 @@ SAPC_fastSpeech2TTS/preprocessed_data/SPAC_subset001
 
 ### 4. Train FastSpeech2
 
-Enabled by `stages.train: True` in `run.yaml`.
+Enabled by `run.stages.train: True`.
 
 Outputs:
 
@@ -134,29 +134,44 @@ Outputs:
 /srv/scratch/speechdata/jinghao/fastSpeech2_result/output/result/SPAC_subset001
 ```
 
-Resume from a checkpoint by setting `run.yaml`:
+Training uses automatic resume by default:
 
 ```yaml
-training:
-  restore_step: 100000
-  pretrained_checkpoint: ""
+run:
+  training:
+    restore_step: "latest"
 ```
 
-Fine-tune from an English pretrained checkpoint by setting `run.yaml`:
+With `restore_step: "latest"`, the job resumes the newest checkpoint if one is
+present. If the checkpoint directory is empty, it starts at step 0 and can still
+initialize from `pretrained_checkpoint`.
+
+Fine-tune from an English pretrained checkpoint by setting:
 
 ```yaml
-training:
-  restore_step: 0
-  pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"
+run:
+  training:
+    restore_step: "latest"
+    pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"
 ```
+
+CPU/GPU runtime settings are in the `resources` section of:
+
+```yaml
+config/SAPC_subset001/fastSpeech2_v1.yaml
+```
+
+The training script uses PyTorch DataParallel when more than one visible GPU is
+requested.
 
 ## Generation Check
 
 After training, generate fixed dev-set samples by setting:
 
 ```yaml
-stages:
-  generate: True
+run:
+  stages:
+    generate: True
 ```
 
 By default this reads:
@@ -168,9 +183,10 @@ By default this reads:
 and generates `100` samples. Tune this in:
 
 ```yaml
-config/SAPC_subset001/gen.yaml
-generation:
-  sample_count: 100
+config/SAPC_subset001/fastSpeech2_v1.yaml
+gen:
+  generation:
+    sample_count: 100
 ```
 
 Outputs:
@@ -185,12 +201,13 @@ The generation folder contains synthesized `.wav`, mel `.png`, and
 ## Is This Training Or Fine-Tuning?
 
 With the current code, this is training FastSpeech2 on one SAPC speaker from
-scratch unless `training.pretrained_checkpoint` is set in `run.yaml`.
+scratch unless `run.training.pretrained_checkpoint` is set in `fastSpeech2_v1.yaml`.
 
 Strictly speaking:
 
-- Training from scratch: `training.restore_step: 0` and no pretrained checkpoint
-- Continuing/resuming same run: `training.restore_step: <checkpoint_step>`
+- Training from scratch: `run.training.restore_step: 0` and no pretrained checkpoint
+- Continuing/resuming same run: `run.training.restore_step: <checkpoint_step>`
+- Auto-resume same run: `run.training.restore_step: "latest"`
 - Fine-tuning: initialize from a checkpoint trained on another dataset or a
   broader model, then continue training on one SAPC speaker
 

@@ -24,10 +24,64 @@ from evaluate import evaluate
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+def resolve_restore_step(value, ckpt_path):
+    if value is None:
+        return 0
+    if isinstance(value, int):
+        return value
+
+    value = str(value).strip().lower()
+    if value in ("", "0", "none", "false"):
+        return 0
+    if value in ("latest", "auto"):
+        checkpoints = []
+        ckpt_dir = Path(ckpt_path)
+        if ckpt_dir.exists():
+            for path in ckpt_dir.glob("*.pth.tar"):
+                try:
+                    checkpoints.append(int(path.name.split(".")[0]))
+                except ValueError:
+                    continue
+        if checkpoints:
+            return max(checkpoints)
+        print("No existing checkpoints found in {}; starting from step 0.".format(ckpt_path))
+        return 0
+
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise ValueError(
+            "--restore_step must be an integer step, 'latest', or 'auto'; got {!r}".format(value)
+        ) from exc
+
+
+def get_requested_ngpu(train_config):
+    value = os.environ.get("FASTSPEECH2_NGPU")
+    if value is None:
+        value = train_config.get("resource", {}).get("ngpu")
+    if value in (None, ""):
+        return None
+    return max(0, int(value))
+
+
+def get_num_workers(train_config):
+    loader_config = train_config.get("data_loader", {})
+    value = os.environ.get("FASTSPEECH2_NUM_WORKERS")
+    if value is not None:
+        return int(value)
+    if "num_workers" in loader_config:
+        return int(loader_config["num_workers"])
+    ncpu = os.environ.get("FASTSPEECH2_NCPU") or train_config.get("resource", {}).get("ncpu")
+    if ncpu in (None, ""):
+        return 0
+    return max(0, int(ncpu) - 1)
+
+
 def main(args, configs):
     print("Prepare training ...")
 
     preprocess_config, model_config, train_config = configs
+    args.restore_step = resolve_restore_step(args.restore_step, train_config["path"]["ckpt_path"])
 
     # Get dataset
     dataset = Dataset(
@@ -43,7 +97,7 @@ def main(args, configs):
             )
         )
     loader_config = train_config.get("data_loader", {})
-    num_workers = int(loader_config.get("num_workers", 0))
+    num_workers = get_num_workers(train_config)
     pin_memory = bool(loader_config.get("pin_memory", torch.cuda.is_available()))
     data_loader_kwargs = {
         "batch_size": batch_size * group_size,
@@ -63,8 +117,22 @@ def main(args, configs):
 
     # Prepare model
     model, optimizer = get_model(args, configs, device, train=True)
-    if torch.cuda.device_count() > 1:
-        model = nn.DataParallel(model)
+    requested_ngpu = get_requested_ngpu(train_config)
+    available_ngpu = torch.cuda.device_count()
+    if requested_ngpu is not None and requested_ngpu > available_ngpu:
+        raise RuntimeError(
+            "Requested {} GPU(s), but PyTorch can see only {} GPU(s).".format(
+                requested_ngpu, available_ngpu
+            )
+        )
+    data_parallel_ngpu = requested_ngpu if requested_ngpu is not None else available_ngpu
+    if data_parallel_ngpu > 1:
+        model = nn.DataParallel(model, device_ids=list(range(data_parallel_ngpu)))
+        print("Using DataParallel on {} GPU(s).".format(data_parallel_ngpu))
+    elif available_ngpu:
+        print("Using 1 GPU.")
+    else:
+        print("Using CPU.")
     num_param = get_param_num(model)
     Loss = FastSpeech2Loss(preprocess_config, model_config).to(device)
     print("Number of FastSpeech2 Parameters:", num_param)
@@ -89,7 +157,7 @@ def main(args, configs):
     grad_acc_step = train_config["optimizer"]["grad_acc_step"]
     grad_clip_thresh = train_config["optimizer"]["grad_clip_thresh"]
     total_step = train_config["step"]["total_step"]
-    log_step = train_config["step"]["log_step"]
+    report_step = int(train_config["step"].get("report_step", train_config["step"].get("log_step", 100)))
     save_step = train_config["step"]["save_step"]
     synth_step = train_config["step"]["synth_step"]
     val_step = train_config["step"]["val_step"]
@@ -122,7 +190,7 @@ def main(args, configs):
                     optimizer.step_and_update_lr()
                     optimizer.zero_grad()
 
-                if step % log_step == 0:
+                if step % report_step == 0:
                     losses = [l.item() for l in losses]
                     message1 = "Step {}/{}, ".format(step, total_step)
                     message2 = "Total Loss: {:.4f}, Mel Loss: {:.4f}, Mel PostNet Loss: {:.4f}, Pitch Loss: {:.4f}, Energy Loss: {:.4f}, Duration Loss: {:.4f}".format(
@@ -202,7 +270,7 @@ def main(args, configs):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--restore_step", type=int, default=0)
+    parser.add_argument("--restore_step", type=str, default="0")
     parser.add_argument(
         "--pretrained_checkpoint",
         type=str,
@@ -214,13 +282,13 @@ if __name__ == "__main__":
         "--preprocess_config",
         type=str,
         required=True,
-        help="path to preprocess.yaml",
+        help="path to preprocess.yaml or unified config",
     )
     parser.add_argument(
-        "-m", "--model_config", type=str, required=True, help="path to model.yaml"
+        "-m", "--model_config", type=str, required=True, help="path to model.yaml or unified config"
     )
     parser.add_argument(
-        "-t", "--train_config", type=str, required=True, help="path to train.yaml"
+        "-t", "--train_config", type=str, required=True, help="path to train.yaml or unified config"
     )
     args = parser.parse_args()
 

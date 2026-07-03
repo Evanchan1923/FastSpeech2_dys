@@ -25,9 +25,18 @@ def _expand_paths(value):
     return value
 
 
-def load_config(path):
+def load_config(path, section=None):
     with open(path, "r", encoding="utf-8") as f:
-        return _expand_paths(yaml.load(f, Loader=yaml.FullLoader))
+        config = _expand_paths(yaml.load(f, Loader=yaml.FullLoader))
+    if section is not None:
+        return get_config_section(config, section)
+    return config
+
+
+def get_config_section(config, section):
+    if isinstance(config, dict) and section in config:
+        return config[section]
+    return config
 
 
 def apply_runtime_overrides(preprocess_config, train_config=None):
@@ -73,14 +82,14 @@ def apply_runtime_overrides(preprocess_config, train_config=None):
 
 
 def load_preprocess_config(path):
-    config = load_config(path)
+    config = load_config(path, "preprocess")
     apply_runtime_overrides(config)
     return config
 
 
 def load_configs(preprocess_path, model_path, train_path):
-    preprocess_config = load_config(preprocess_path)
-    model_config = load_config(model_path)
-    train_config = load_config(train_path)
+    preprocess_config = load_config(preprocess_path, "preprocess")
+    model_config = load_config(model_path, "model")
+    train_config = load_config(train_path, "train")
     apply_runtime_overrides(preprocess_config, train_config)
     return preprocess_config, model_config, train_config

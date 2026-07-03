@@ -33,10 +33,11 @@ automatically on first use if the `.pth.tar` file is not already present.
 
 ## Training Job
 
-Edit `config/SAPC_subset001/run.yaml` and set:
+Edit `config/SAPC_subset001/fastSpeech2_v1.yaml` and set:
 
 ```yaml
-speaker: "<speaker_id>"
+run:
+  speaker: "<speaker_id>"
 ```
 
 Then submit:
@@ -45,30 +46,44 @@ Then submit:
 qsub fastSpeech2_v1.pbs
 ```
 
-The PBS script reads stage controls from `run.yaml`:
+The PBS script reads stage controls from the `run` section:
 
 ```yaml
-stages:
-  prepare_align: True
-  mfa: True
-  preprocess: True
-  train: True
-  generate: True
+run:
+  stages:
+    prepare_align: True
+    mfa: True
+    preprocess: True
+    train: True
+    generate: True
 ```
 
-For resume training, set:
+Training defaults to automatic resume:
 
 ```yaml
-training:
-  restore_step: 100000
-  pretrained_checkpoint: ""
+run:
+  training:
+    restore_step: "latest"
 ```
+
+With `restore_step: "latest"`, the training job resumes the newest checkpoint in
+the run checkpoint folder. If no checkpoint exists, it starts at step 0 and uses
+`pretrained_checkpoint` as initialization when that path is set.
+
+CPU/GPU runtime settings live in the `resources` section. Keep those values
+matched with the PBS resource request.
+
+Training loss/report cadence is controlled by `train.step.report_step`; the SAPC
+default is `5000`.
+
+For Python venv setup and a copy-paste PBS smoke test, see
+`docs/PBS_VENV_SETUP.md`.
 
 ## Per-Speaker Fine-Tuning
 
 The SAPC config is set up for per-speaker fine-tuning. The speaker is selected
-with `config/SAPC_subset001/run.yaml`, and each speaker gets separate raw, preprocessed,
-checkpoint, log, and generated-result folders.
+with `config/SAPC_subset001/fastSpeech2_v1.yaml`, and each speaker gets separate
+raw, preprocessed, checkpoint, log, and generated-result folders.
 
 The original FastSpeech2 repo provides pretrained checkpoints here:
 
@@ -86,22 +101,24 @@ Suggested server location:
 /srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar
 ```
 
-Fine-tune from that checkpoint by setting `run.yaml`:
+Fine-tune from that checkpoint by setting:
 
 ```yaml
-training:
-  restore_step: 0
-  pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"
+run:
+  training:
+    restore_step: "latest"
+    pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"
 ```
 
 ## Generation Check
 
 After training, generate fixed SAPC dev samples by keeping this enabled in
-`run.yaml`:
+`fastSpeech2_v1.yaml`:
 
 ```yaml
-stages:
-  generate: True
+run:
+  stages:
+    generate: True
 ```
 
 By default this uses the latest checkpoint and generates `100` samples from:
@@ -116,20 +133,16 @@ Outputs are written under the training result directory:
 /srv/scratch/speechdata/jinghao/fastSpeech2_result/output/result/SPAC_subset001/dev_samples/step_<restore_step>
 ```
 
-Tune generation in:
+Tune generation in the `gen` section of:
 
 ```text
-config/SAPC_subset001/gen.yaml
+config/SAPC_subset001/fastSpeech2_v1.yaml
 ```
 
 ## Active Config
 
 ```text
-config/SAPC_subset001/preprocess.yaml
-config/SAPC_subset001/model.yaml
-config/SAPC_subset001/train.yaml
-config/SAPC_subset001/gen.yaml
-config/SAPC_subset001/run.yaml
+config/SAPC_subset001/fastSpeech2_v1.yaml
 ```
 
 The SAPC adapter reads HuggingFace rows and writes FastSpeech2 raw `.wav`/`.lab`

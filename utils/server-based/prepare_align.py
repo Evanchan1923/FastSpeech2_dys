@@ -31,7 +31,7 @@ def main(config):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("config", type=str, help="path to preprocess.yaml")
+    parser.add_argument("config", type=str, help="path to preprocess.yaml or unified config")
     args = parser.parse_args()
 
     config = load_preprocess_config(args.config)

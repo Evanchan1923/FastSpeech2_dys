@@ -221,7 +221,7 @@ def _write_manifest(path, samples, skipped, configs, gen_config, restore_step):
 def main(args):
     configs = load_configs(args.preprocess_config, args.model_config, args.train_config)
     preprocess_config, model_config, train_config = configs
-    gen_config = load_config(args.gen_config)
+    gen_config = load_config(args.gen_config, "gen")
 
     restore_step = args.restore_step
     if restore_step is None:
@@ -285,26 +285,26 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p",
         "--preprocess_config",
-        default="config/SAPC_subset001/preprocess.yaml",
-        help="path to preprocess.yaml",
+        default="config/SAPC_subset001/fastSpeech2_v1.yaml",
+        help="path to preprocess.yaml or unified config",
     )
     parser.add_argument(
         "-m",
         "--model_config",
-        default="config/SAPC_subset001/model.yaml",
-        help="path to model.yaml",
+        default="config/SAPC_subset001/fastSpeech2_v1.yaml",
+        help="path to model.yaml or unified config",
     )
     parser.add_argument(
         "-t",
         "--train_config",
-        default="config/SAPC_subset001/train.yaml",
-        help="path to train.yaml",
+        default="config/SAPC_subset001/fastSpeech2_v1.yaml",
+        help="path to train.yaml or unified config",
     )
     parser.add_argument(
         "-g",
         "--gen_config",
-        default="config/SAPC_subset001/gen.yaml",
-        help="path to gen.yaml",
+        default="config/SAPC_subset001/fastSpeech2_v1.yaml",
+        help="path to gen.yaml or unified config",
     )
     parser.add_argument(
         "--restore_step",

@@ -26,24 +26,28 @@ def get_model(args, configs, device, train=False):
 
     model = FastSpeech2(preprocess_config, model_config).to(device)
     pretrained_checkpoint = getattr(args, "pretrained_checkpoint", None)
-    if pretrained_checkpoint:
-        ckpt = torch.load(pretrained_checkpoint, map_location=device)
-        model.load_state_dict(ckpt["model"])
-        print("Loaded pretrained FastSpeech2 checkpoint: {}".format(pretrained_checkpoint))
-    elif args.restore_step:
+    if args.restore_step:
         ckpt_path = os.path.join(
             train_config["path"]["ckpt_path"],
             "{}.pth.tar".format(args.restore_step),
         )
         ckpt = torch.load(ckpt_path, map_location=device)
         model.load_state_dict(ckpt["model"])
+        print("Resumed FastSpeech2 checkpoint: {}".format(ckpt_path))
+    elif pretrained_checkpoint:
+        ckpt = torch.load(pretrained_checkpoint, map_location=device)
+        model.load_state_dict(ckpt["model"])
+        print("Loaded pretrained FastSpeech2 checkpoint: {}".format(pretrained_checkpoint))
 
     if train:
         scheduled_optim = ScheduledOptim(
             model, train_config, model_config, args.restore_step
         )
-        if args.restore_step and not pretrained_checkpoint:
-            scheduled_optim.load_state_dict(ckpt["optimizer"])
+        if args.restore_step:
+            if "optimizer" in ckpt:
+                scheduled_optim.load_state_dict(ckpt["optimizer"])
+            else:
+                print("Checkpoint has no optimizer state; optimizer will be reinitialized.")
         model.train()
         return model, scheduled_optim
 
