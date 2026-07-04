@@ -65,12 +65,12 @@ train:
 
   resources:
     # Runtime resources used by Python; PBS allocation is set in fastSpeech2_v1.pbs.
-    ncpu: 2
-    ngpu: 2
+    ncpu: 1
+    ngpu: 1
     omp_num_threads: 2
 
   data_loader:
-    num_workers: 2
+    num_workers: 1
     pin_memory: True
     prefetch_factor: 2
 
