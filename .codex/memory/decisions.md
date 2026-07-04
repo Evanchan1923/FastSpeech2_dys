@@ -3,10 +3,11 @@
 ## 2026-07-03
 
 - Use `config/SAPC_subset001/fastSpeech2_v1.yaml` as the single SAPC config file, with named sections for run controls, resources, preprocessing, model, training, and generation.
+- Order `fastSpeech2_v1.yaml` for server editing: runtime CPU/GPU settings first, then run controls and path-heavy sections, with lower-touch model architecture details last.
 - Keep the config loader backward-compatible with legacy split files by returning a named section only when that section exists.
 - Use `training.restore_step: "latest"` as the SAPC default so qsub jobs resume the newest checkpoint automatically and start from step 0 only when no run checkpoint exists.
 - When both a run checkpoint and `pretrained_checkpoint` are configured, prefer the run checkpoint and restore its optimizer state; use `pretrained_checkpoint` only for step-0 initialization.
-- Keep PBS resource directives explicit, and use the unified config `resources` section for runtime CPU/GPU settings that the PBS script exports and checks against scheduler-provided values.
+- Keep PBS scheduler directives explicit in `fastSpeech2_v1.pbs`; use the unified config `resources` section only for runtime CPU/GPU settings that the training script needs.
 - Use `step.report_step` as the new training loss/report cadence knob while preserving existing `log_step` as a fallback for older configs.
 
 ## 2026-06-30

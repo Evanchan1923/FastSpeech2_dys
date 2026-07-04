@@ -1,6 +1,11 @@
+resources:
+  ncpu: 2
+  ngpu: 2
+  omp_num_threads: 2
+  data_loader_num_workers: 2
+
 run:
   speaker: "CHANGE_ME"
-
   venv_dir: "/srv/scratch/z5327748/venv/FastSpeech_tts"
 
   stages:
@@ -21,20 +26,6 @@ run:
     bin: "mfa"
     acoustic_model: "english"
     dictionary: null
-
-resources:
-  pbs:
-    select: 1
-    ncpus: 2
-    ngpus: 2
-    mem: "42gb"
-    walltime: "32:00:00"
-
-  runtime:
-    ncpu: 2
-    ngpu: 2
-    omp_num_threads: 2
-    data_loader_num_workers: 2
 
 preprocess:
   dataset: "SAPC_Dysarthric"
@@ -75,37 +66,6 @@ preprocess:
       feature: "phoneme_level"
       normalization: True
 
-model:
-  transformer:
-    encoder_layer: 4
-    encoder_head: 2
-    encoder_hidden: 256
-    decoder_layer: 6
-    decoder_head: 2
-    decoder_hidden: 256
-    conv_filter_size: 1024
-    conv_kernel_size: [9, 1]
-    encoder_dropout: 0.2
-    decoder_dropout: 0.2
-
-  variance_predictor:
-    filter_size: 256
-    kernel_size: 3
-    dropout: 0.5
-
-  variance_embedding:
-    pitch_quantization: "linear"
-    energy_quantization: "linear"
-    n_bins: 256
-
-  multi_speaker: False
-
-  max_seq_len: 1000
-
-  vocoder:
-    model: "HiFi-GAN"
-    speaker: "universal"
-
 train:
   path:
     ckpt_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/ckpt/SPAC_subset001/${SAPC_SPEAKER}"
@@ -133,7 +93,7 @@ train:
 
   step:
     total_step: 900000
-    log_step: 100
+    log_step: 500
     report_step: 5000
     synth_step: 1000
     val_step: 1000
@@ -165,3 +125,33 @@ gen:
     pitch: 1.0
     energy: 1.0
     duration: 1.0
+
+model:
+  multi_speaker: False
+  max_seq_len: 1000
+
+  vocoder:
+    model: "HiFi-GAN"
+    speaker: "universal"
+
+  transformer:
+    encoder_layer: 4
+    encoder_head: 2
+    encoder_hidden: 256
+    decoder_layer: 6
+    decoder_head: 2
+    decoder_hidden: 256
+    conv_filter_size: 1024
+    conv_kernel_size: [9, 1]
+    encoder_dropout: 0.2
+    decoder_dropout: 0.2
+
+  variance_predictor:
+    filter_size: 256
+    kernel_size: 3
+    dropout: 0.5
+
+  variance_embedding:
+    pitch_quantization: "linear"
+    energy_quantization: "linear"
+    n_bins: 256

@@ -70,8 +70,8 @@ With `restore_step: "latest"`, the training job resumes the newest checkpoint in
 the run checkpoint folder. If no checkpoint exists, it starts at step 0 and uses
 `pretrained_checkpoint` as initialization when that path is set.
 
-CPU/GPU runtime settings live in the `resources` section. Keep those values
-matched with the PBS resource request.
+Runtime CPU/GPU settings live in the `resources` section. The scheduler request
+itself stays in `fastSpeech2_v1.pbs`.
 
 Training loss/report cadence is controlled by `train.step.report_step`; the SAPC
 default is `5000`.

@@ -4,6 +4,9 @@
 
 - Merged the SAPC split YAML configs into `config/SAPC_subset001/fastSpeech2_v1.yaml` and removed the old SAPC `preprocess.yaml`, `model.yaml`, `train.yaml`, `gen.yaml`, `run.yaml`, and `resources.yaml` files.
 - Updated the config loader and PBS/script defaults so SAPC stages can read the unified config sections while legacy split YAML files still work.
+- Simplified the unified SAPC `resources` section to runtime `ncpu`/`ngpu` settings while leaving scheduler resources in `fastSpeech2_v1.pbs`.
+- Reordered `fastSpeech2_v1.yaml` to put CPU/GPU, run controls, and path-heavy sections before lower-touch model settings.
+- Updated Python dependencies for the documented Python 3.10 server venv after the old NumPy pin failed to build.
 - Added automatic FastSpeech2 training resume with `restore_step: "latest"` / `"auto"` checkpoint discovery.
 - Added SAPC PBS/runtime CPU and GPU settings and wired them into `fastSpeech2_v1.pbs`.
 - Added `step.report_step: 5000` support for controlling training loss/report logging cadence.

@@ -9,7 +9,7 @@
 - SAPC audio loading avoids torchcodec; the adapter reads HuggingFace `bytes`, `array`, or `path` fields with `soundfile` and uses `librosa` only for resampling.
 - Training can auto-resume with `training.restore_step: "latest"` or `"auto"`, which picks the newest numeric checkpoint in the run checkpoint folder. If none exists, training starts at step 0 and uses `training.pretrained_checkpoint` when configured.
 - Training from scratch still uses `training.restore_step: 0` with no pretrained checkpoint. Resuming can use a checkpoint step from the same run. Fine-tuning uses a checkpoint from another dataset or broader model, such as the LJSpeech checkpoint.
-- Runtime CPU/GPU settings for the PBS workflow are stored in the `resources` section of `config/SAPC_subset001/fastSpeech2_v1.yaml`; keep them matched with the PBS scheduler request.
+- Runtime CPU/GPU settings for the training script are stored as `resources.ncpu` and `resources.ngpu` in `config/SAPC_subset001/fastSpeech2_v1.yaml`; scheduler-only values such as select, memory, and walltime stay in `fastSpeech2_v1.pbs`.
 - SAPC training reports losses at `step.report_step`, currently `5000`, while synthesis, validation, and save cadence remain controlled by their existing step settings.
 - The pipeline summary is stored at `docs/PIPELINE_SUMMARY.md`.
 - Repository lexicons are stored under `text/lexicon/`.

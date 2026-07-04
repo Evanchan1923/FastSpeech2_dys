@@ -155,14 +155,15 @@ run:
     pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"
 ```
 
-CPU/GPU runtime settings are in the `resources` section of:
+CPU/GPU runtime settings used by the training script are in the `resources`
+section of:
 
 ```yaml
 config/SAPC_subset001/fastSpeech2_v1.yaml
 ```
 
 The training script uses PyTorch DataParallel when more than one visible GPU is
-requested.
+requested. The actual scheduler resource request remains in `fastSpeech2_v1.pbs`.
 
 ## Generation Check
 

@@ -4,6 +4,9 @@
 
 - Merged the SAPC configs into `config/SAPC_subset001/fastSpeech2_v1.yaml` with `run`, `resources`, `preprocess`, `model`, `train`, and `gen` sections.
 - Updated SAPC PBS/script defaults to use the unified config file and removed the old SAPC split YAML files.
+- Simplified the SAPC `resources` section to runtime-only CPU/GPU settings; PBS scheduler resources remain in `fastSpeech2_v1.pbs`.
+- Reordered `fastSpeech2_v1.yaml` so CPU/GPU, run controls, and path-heavy sections are near the top, with model architecture settings at the bottom.
+- Updated `requirements.txt` to Python 3.10-compatible package pins to avoid legacy NumPy/source-build failures during venv setup.
 - Added automatic resume from the latest FastSpeech2 checkpoint, with fallback to step 0 plus pretrained initialization when no checkpoint exists.
 - Added runtime CPU/GPU settings used by the PBS script and training job.
 - Added configurable training report cadence via `step.report_step`, set to `5000` for SAPC.

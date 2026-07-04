@@ -15,6 +15,7 @@ module load python/3.10.8
 module load ffmpeg/7.0.2
 module load cuda/12.1.1
 
+rm -rf /srv/scratch/z5327748/venv/FastSpeech_tts
 python -m venv /srv/scratch/z5327748/venv/FastSpeech_tts
 source /srv/scratch/z5327748/venv/FastSpeech_tts/bin/activate
 
@@ -23,10 +24,9 @@ python -m pip install -r requirements.txt
 python -m pip check
 ```
 
-If the server Python module cannot install the pinned legacy packages in
-`requirements.txt`, load an older Python module that supports the same package
-set, recreate the venv, and make the PBS `module load python/...` line match
-that module.
+The requirements are pinned for `python/3.10.8`. If pip previously failed while
+building old NumPy from source, remove the venv and recreate it with the commands
+above so the updated Python 3.10 wheels are installed into a clean environment.
 
 ## 2. Confirm The Run Config
 
@@ -64,18 +64,13 @@ config/SAPC_subset001/fastSpeech2_v1.yaml
 ```
 
 Keep these values matched with the PBS header or with the `qsub -l` resources
-you request:
+you request. The PBS scheduler request itself remains in `fastSpeech2_v1.pbs`.
 
 ```yaml
 resources:
-  pbs:
-    ncpus: 2
-    ngpus: 2
-
-  runtime:
-    ncpu: 2
-    ngpu: 2
-    data_loader_num_workers: 2
+  ncpu: 2
+  ngpu: 2
+  data_loader_num_workers: 2
 ```
 
 The training script uses DataParallel when more than one visible GPU is
@@ -126,34 +121,10 @@ print("Torch:", torch.__version__)
 print("CUDA available:", torch.cuda.is_available())
 print("CUDA device count:", torch.cuda.device_count())
 print("Speaker:", speaker)
-print("Runtime ncpu:", resources_config.get("runtime", {}).get("ncpu"))
-print("Runtime ngpu:", resources_config.get("runtime", {}).get("ngpu"))
+print("Runtime ncpu:", resources_config.get("ncpu"))
+print("Runtime ngpu:", resources_config.get("ngpu"))
 print("Checkpoint dir:", ckpt_dir)
 print("Latest checkpoint:", max(steps) if steps else "none; training will start at step 0")
 print("PBS syntax/config smoke test passed.")
-PY
-```
-
-## 5. Optional: Print A Matching qsub Command
-
-Paste this if you want a `qsub` command generated from the `resources` section:
-
-```bash
-python - <<'PY'
-from utils.config import load_config
-
-resources = load_config("config/SAPC_subset001/fastSpeech2_v1.yaml", "resources")
-pbs = resources.get("pbs", {})
-select = pbs.get("select", 1)
-ncpus = pbs.get("ncpus", 2)
-ngpus = pbs.get("ngpus", 2)
-mem = pbs.get("mem", "42gb")
-walltime = pbs.get("walltime", "32:00:00")
-
-print(
-    "qsub -l select={}:ncpus={}:ngpus={}:mem={} -l walltime={} fastSpeech2_v1.pbs".format(
-        select, ncpus, ngpus, mem, walltime
-    )
-)
 PY
 ```

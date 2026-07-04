@@ -7,12 +7,12 @@ Set the speaker in `SAPC_subset001/fastSpeech2_v1.yaml`, then submit
 ## Active Config
 
 - `SAPC_subset001/fastSpeech2_v1.yaml`: one combined SAPC config with these sections:
+  - `resources`: runtime CPU and GPU settings read by the training script.
   - `run`: speaker, stage toggles, pretrained checkpoint, generation restore step, and MFA settings.
-  - `resources`: PBS/runtime CPU and GPU settings.
   - `preprocess`: HuggingFace SAPC input path, FastSpeech2 raw/preprocessed paths, and text/audio preprocessing.
-  - `model`: FastSpeech2 model and HiFi-GAN vocoder settings.
   - `train`: optimizer, logging cadence, DataLoader settings, and output paths.
   - `gen`: SAPC dev split generation settings, including sample count and output subfolder.
+  - `model`: FastSpeech2 model and HiFi-GAN vocoder settings.
 
 The model config uses `multi_speaker: False`, so each run trains/fine-tunes one
 speaker only.
@@ -24,8 +24,8 @@ speaker only.
 - Training data/intermediate files: `/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS`
 
 The PBS script reads paths and runtime settings from `fastSpeech2_v1.yaml`.
-Keep `resources.runtime.ncpu` and `resources.runtime.ngpu` matched with the PBS
-resource request.
+Keep `resources.ncpu` and `resources.ngpu` matched with the PBS resource request
+declared in `fastSpeech2_v1.pbs`.
 
 Use `train.step.report_step` to control how often training loss is printed and
 written to TensorBoard.

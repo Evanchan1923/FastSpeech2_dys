@@ -59,12 +59,10 @@ stages = run_config.get("stages", {})
 training = run_config.get("training", {})
 generation = run_config.get("generation", {})
 mfa = run_config.get("mfa", {})
-pbs_resources = resources_config.get("pbs", {})
-runtime_resources = resources_config.get("runtime", {})
-ncpu = runtime_resources.get("ncpu", pbs_resources.get("ncpus", os.environ.get("PBS_NCPUS", 2)))
-ngpu = runtime_resources.get("ngpu", pbs_resources.get("ngpus", 0))
-omp_num_threads = runtime_resources.get("omp_num_threads", ncpu)
-num_workers = runtime_resources.get("data_loader_num_workers")
+ncpu = resources_config.get("ncpu", os.environ.get("PBS_NCPUS", 2))
+ngpu = resources_config.get("ngpu", os.environ.get("PBS_NGPUS", 0))
+omp_num_threads = resources_config.get("omp_num_threads", ncpu)
+num_workers = resources_config.get("data_loader_num_workers")
 
 emit("SAPC_SPEAKER", speaker, export=True)
 emit("FASTSPEECH2_NCPU", ncpu, export=True)
@@ -120,11 +118,11 @@ if [[ -n "${MFA_DICTIONARY_OVERRIDE}" ]]; then
 fi
 
 if [[ -n "${PBS_NCPUS:-}" && "${FASTSPEECH2_NCPU}" != "${PBS_NCPUS}" ]]; then
-  echo "[WARN] resources.runtime.ncpu=${FASTSPEECH2_NCPU} but PBS_NCPUS=${PBS_NCPUS}."
+  echo "[WARN] resources.ncpu=${FASTSPEECH2_NCPU} but PBS_NCPUS=${PBS_NCPUS}."
 fi
 
 if [[ -n "${PBS_NGPUS:-}" && "${FASTSPEECH2_NGPU}" != "${PBS_NGPUS}" ]]; then
-  echo "[WARN] resources.runtime.ngpu=${FASTSPEECH2_NGPU} but PBS_NGPUS=${PBS_NGPUS}."
+  echo "[WARN] resources.ngpu=${FASTSPEECH2_NGPU} but PBS_NGPUS=${PBS_NGPUS}."
 fi
 
 mkdir -p \
