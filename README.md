@@ -33,7 +33,7 @@ automatically on first use if the `.pth.tar` file is not already present.
 
 ## Training Job
 
-Edit `config/SAPC_subset001/fastSpeech2_v1.yaml` and set:
+For per-speaker fine-tuning, edit `config/SAPC_subset001/fastSpeech2_v1.yaml` and set:
 
 ```yaml
 run:
@@ -45,6 +45,16 @@ Then submit:
 ```bash
 qsub fastSpeech2_v1.pbs
 ```
+
+For true multi-speaker training across a selected speaker subset, edit
+`run.speakers` in `config/SAPC_subset001/fastSpeech2_v2.yaml`, then use:
+
+```bash
+qsub fastSpeech2_v2.pbs
+```
+
+The v2 config uses `model.multi_speaker: True`, reuses `run.speakers` for train
+and generation filtering, and writes to shared multi-speaker folders.
 
 The PBS script reads stage controls from the `run` section:
 
@@ -58,20 +68,14 @@ run:
     generate: True
 ```
 
-Training defaults to automatic resume:
-
-```yaml
-run:
-  training:
-    restore_step: "latest"
-```
-
-With `restore_step: "latest"`, the training job resumes the newest checkpoint in
+Training defaults to automatic resume. The job resumes the newest checkpoint in
 the run checkpoint folder. If no checkpoint exists, it starts at step 0 and uses
-`pretrained_checkpoint` as initialization when that path is set.
+`pretrained_checkpoint` as initialization when that path is set. Set
+`run.training.restore_step` only when you want to force a specific checkpoint or
+force scratch training with `0`.
 
-Runtime CPU/GPU settings live in the `resources` section. The scheduler request
-itself stays in `fastSpeech2_v1.pbs`.
+Runtime CPU/GPU settings live in `train.resources`. The scheduler request itself
+stays in `fastSpeech2_v1.pbs`.
 
 Training loss/report cadence is controlled by `train.step.report_step`; the SAPC
 default is `5000`.
@@ -106,7 +110,6 @@ Fine-tune from that checkpoint by setting:
 ```yaml
 run:
   training:
-    restore_step: "latest"
     pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"
 ```
 

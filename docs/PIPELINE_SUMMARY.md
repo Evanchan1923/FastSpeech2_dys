@@ -61,10 +61,12 @@ Active configs:
 
 ```text
 config/SAPC_subset001/fastSpeech2_v1.yaml
+config/SAPC_subset001/fastSpeech2_v2.yaml
 ```
 
-The combined config contains `run`, `resources`, `preprocess`, `model`, `train`,
-and `gen` sections.
+The combined configs contain `run`, `preprocess`, `train`, `gen`, and `model`
+sections. Use v1 for per-speaker fine-tuning and v2 for true multi-speaker
+training across the speaker IDs listed in `run.speakers`.
 
 ## Pipeline Stages
 
@@ -134,29 +136,19 @@ Outputs:
 /srv/scratch/speechdata/jinghao/fastSpeech2_result/output/result/SPAC_subset001
 ```
 
-Training uses automatic resume by default:
-
-```yaml
-run:
-  training:
-    restore_step: "latest"
-```
-
-With `restore_step: "latest"`, the job resumes the newest checkpoint if one is
-present. If the checkpoint directory is empty, it starts at step 0 and can still
-initialize from `pretrained_checkpoint`.
+Training uses automatic resume by default. The job resumes the newest checkpoint
+if one is present. If the checkpoint directory is empty, it starts at step 0 and
+can still initialize from `pretrained_checkpoint`.
 
 Fine-tune from an English pretrained checkpoint by setting:
 
 ```yaml
 run:
   training:
-    restore_step: "latest"
     pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"
 ```
 
-CPU/GPU runtime settings used by the training script are in the `resources`
-section of:
+CPU/GPU runtime settings used by the training script are in `train.resources` in:
 
 ```yaml
 config/SAPC_subset001/fastSpeech2_v1.yaml
@@ -206,9 +198,9 @@ scratch unless `run.training.pretrained_checkpoint` is set in `fastSpeech2_v1.ya
 
 Strictly speaking:
 
-- Training from scratch: `run.training.restore_step: 0` and no pretrained checkpoint
+- Training from scratch: set `run.training.restore_step: 0` and no pretrained checkpoint
 - Continuing/resuming same run: `run.training.restore_step: <checkpoint_step>`
-- Auto-resume same run: `run.training.restore_step: "latest"`
+- Auto-resume same run: default behavior, or explicitly set `run.training.restore_step: "latest"`
 - Fine-tuning: initialize from a checkpoint trained on another dataset or a
   broader model, then continue training on one SAPC speaker
 

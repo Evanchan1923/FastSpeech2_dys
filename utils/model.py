@@ -21,6 +21,22 @@ def _hifigan_dirs():
     return list(dict.fromkeys(dirs))
 
 
+def _load_pretrained_model(model, checkpoint):
+    model_state = model.state_dict()
+    checkpoint_state = checkpoint["model"]
+    compatible_state = {}
+    skipped = []
+    for key, value in checkpoint_state.items():
+        if key in model_state and model_state[key].shape == value.shape:
+            compatible_state[key] = value
+        else:
+            skipped.append(key)
+
+    model_state.update(compatible_state)
+    model.load_state_dict(model_state)
+    return skipped
+
+
 def get_model(args, configs, device, train=False):
     (preprocess_config, model_config, train_config) = configs
 
@@ -36,8 +52,10 @@ def get_model(args, configs, device, train=False):
         print("Resumed FastSpeech2 checkpoint: {}".format(ckpt_path))
     elif pretrained_checkpoint:
         ckpt = torch.load(pretrained_checkpoint, map_location=device)
-        model.load_state_dict(ckpt["model"])
+        skipped = _load_pretrained_model(model, ckpt)
         print("Loaded pretrained FastSpeech2 checkpoint: {}".format(pretrained_checkpoint))
+        if skipped:
+            print("Skipped incompatible pretrained keys: {}".format(", ".join(skipped)))
 
     if train:
         scheduled_optim = ScheduledOptim(

@@ -5,6 +5,7 @@ venv used by `config/SAPC_subset001/fastSpeech2_v1.yaml` and `fastSpeech2_v1.pbs
 The PBS script activates this default venv before reading YAML configs, so keep
 `run.venv_dir` pointed here unless you also update `DEFAULT_VENV_DIR` for the
 job.
+The same venv is used by `fastSpeech2_v2.pbs` for the multi-speaker config.
 
 ## 1. Create The Venv
 
@@ -43,17 +44,9 @@ run:
   speaker: "<speaker_id>"
 ```
 
-The default training setting is:
-
-```yaml
-run:
-  training:
-    restore_step: "latest"
-```
-
-That means the job resumes the newest checkpoint in the checkpoint directory. If
-no checkpoint exists, it starts from step 0 and uses `pretrained_checkpoint` if
-that path is set.
+Training auto-resume is the default. The job resumes the newest checkpoint in
+the checkpoint directory. If no checkpoint exists, it starts from step 0 and
+uses `pretrained_checkpoint` if that path is set.
 
 ## 3. Confirm CPU/GPU Settings
 
@@ -67,10 +60,12 @@ Keep these values matched with the PBS header or with the `qsub -l` resources
 you request. The PBS scheduler request itself remains in `fastSpeech2_v1.pbs`.
 
 ```yaml
-resources:
-  ncpu: 2
-  ngpu: 2
-  data_loader_num_workers: 2
+train:
+  resources:
+    ncpu: 2
+    ngpu: 2
+  data_loader:
+    num_workers: 2
 ```
 
 The training script uses DataParallel when more than one visible GPU is
@@ -94,7 +89,6 @@ config_path = repo / "config/SAPC_subset001/fastSpeech2_v1.yaml"
 subprocess.run(["bash", "-n", "fastSpeech2_v1.pbs"], check=True)
 
 run_config = load_config(config_path, "run")
-resources_config = load_config(config_path, "resources")
 preprocess_config, model_config, train_config = load_configs(
     config_path,
     config_path,
@@ -121,8 +115,8 @@ print("Torch:", torch.__version__)
 print("CUDA available:", torch.cuda.is_available())
 print("CUDA device count:", torch.cuda.device_count())
 print("Speaker:", speaker)
-print("Runtime ncpu:", resources_config.get("ncpu"))
-print("Runtime ngpu:", resources_config.get("ngpu"))
+print("Runtime ncpu:", train_config.get("resources", {}).get("ncpu"))
+print("Runtime ngpu:", train_config.get("resources", {}).get("ngpu"))
 print("Checkpoint dir:", ckpt_dir)
 print("Latest checkpoint:", max(steps) if steps else "none; training will start at step 0")
 print("PBS syntax/config smoke test passed.")

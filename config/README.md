@@ -1,21 +1,22 @@
 # Config
 
-This repo is configured for per-speaker SAPC dysarthric FastSpeech2 training.
-Set the speaker in `SAPC_subset001/fastSpeech2_v1.yaml`, then submit
-`qsub fastSpeech2_v1.pbs`.
+This repo has SAPC dysarthric FastSpeech2 configs for per-speaker fine-tuning
+and true multi-speaker training.
 
 ## Active Config
 
 - `SAPC_subset001/fastSpeech2_v1.yaml`: one combined SAPC config with these sections:
-  - `resources`: runtime CPU and GPU settings read by the training script.
   - `run`: speaker, stage toggles, pretrained checkpoint, generation restore step, and MFA settings.
   - `preprocess`: HuggingFace SAPC input path, FastSpeech2 raw/preprocessed paths, and text/audio preprocessing.
-  - `train`: optimizer, logging cadence, DataLoader settings, and output paths.
+  - `train`: runtime CPU/GPU settings, optimizer, logging cadence, DataLoader settings, and output paths.
   - `gen`: SAPC dev split generation settings, including sample count and output subfolder.
   - `model`: FastSpeech2 model and HiFi-GAN vocoder settings.
+- `SAPC_subset001/fastSpeech2_v2.yaml`: selected-speaker multi-speaker SAPC
+  config. It uses `model.multi_speaker: True`, filters train/dev rows through
+  `run.speakers`, and writes to shared multi-speaker output folders.
 
-The model config uses `multi_speaker: False`, so each run trains/fine-tunes one
-speaker only.
+Use `qsub fastSpeech2_v1.pbs` for per-speaker fine-tuning and
+`qsub fastSpeech2_v2.pbs` for multi-speaker training.
 
 ## Server Paths
 
@@ -23,9 +24,9 @@ speaker only.
 - Training outputs: `/srv/scratch/speechdata/jinghao/fastSpeech2_result`
 - Training data/intermediate files: `/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS`
 
-The PBS script reads paths and runtime settings from `fastSpeech2_v1.yaml`.
-Keep `resources.ncpu` and `resources.ngpu` matched with the PBS resource request
-declared in `fastSpeech2_v1.pbs`.
+The PBS scripts read paths and runtime settings from their matching YAML files.
+Keep `train.resources.ncpu` and `train.resources.ngpu` matched with the PBS
+resource request declared in the matching PBS file.
 
 Use `train.step.report_step` to control how often training loss is printed and
 written to TensorBoard.

@@ -58,7 +58,7 @@ def resolve_restore_step(value, ckpt_path):
 def get_requested_ngpu(train_config):
     value = os.environ.get("FASTSPEECH2_NGPU")
     if value is None:
-        value = train_config.get("resource", {}).get("ngpu")
+        value = train_config.get("resources", train_config.get("resource", {})).get("ngpu")
     if value in (None, ""):
         return None
     return max(0, int(value))
@@ -71,7 +71,7 @@ def get_num_workers(train_config):
         return int(value)
     if "num_workers" in loader_config:
         return int(loader_config["num_workers"])
-    ncpu = os.environ.get("FASTSPEECH2_NCPU") or train_config.get("resource", {}).get("ncpu")
+    ncpu = os.environ.get("FASTSPEECH2_NCPU") or train_config.get("resources", train_config.get("resource", {})).get("ncpu")
     if ncpu in (None, ""):
         return 0
     return max(0, int(ncpu) - 1)
@@ -270,7 +270,7 @@ def main(args, configs):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--restore_step", type=str, default="0")
+    parser.add_argument("--restore_step", type=str, default="latest")
     parser.add_argument(
         "--pretrained_checkpoint",
         type=str,

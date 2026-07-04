@@ -1,0 +1,154 @@
+run:
+  venv_dir: "/srv/scratch/z5327748/venv/FastSpeech_tts"
+  speakers: &speaker_subset
+    # Train/generate only these speakers; add or remove speaker IDs here.
+    - "71bfe758-dfaa-4227-8365-08dca350f4dc"
+
+  training:
+    # Optional initializer; speaker embedding is randomly initialized for multi-speaker runs.
+    pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"
+
+  mfa:
+    bin: "mfa"
+    acoustic_model: "english"
+    dictionary: null
+
+  stages:
+    prepare_align: True
+    mfa: True
+    preprocess: True
+    train: True
+    generate: True
+
+preprocess:
+  path:
+    corpus_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_subset/SPAC_subset001/train"
+    lexicon_path: "text/lexicon/librispeech-lexicon.txt"
+    raw_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS/raw_data/SPAC_subset001_multispeaker"
+    preprocessed_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS/preprocessed_data/SPAC_subset001_multispeaker"
+
+  dataset: "SAPC_Dysarthric"
+
+  sapc_hf:
+    split: "train"
+    id_field: "id"
+    speaker_field: "speaker"
+    text_field: "norm_text_with_disfluency"
+    speaker_filter: *speaker_subset
+
+  preprocessing:
+    val_size: 256
+    text:
+      text_cleaners: ["english_cleaners"]
+      language: "en"
+    audio:
+      # Target rate for preprocessing/vocoder compatibility; source audio is resampled if needed.
+      sampling_rate: 22050
+      max_wav_value: 32768.0
+    stft:
+      filter_length: 1024
+      hop_length: 256
+      win_length: 1024
+    mel:
+      n_mel_channels: 80
+      mel_fmin: 0
+      mel_fmax: 8000
+    pitch:
+      feature: "phoneme_level"
+      normalization: True
+    energy:
+      feature: "phoneme_level"
+      normalization: True
+
+train:
+  path:
+    ckpt_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/ckpt/SPAC_subset001_multispeaker"
+    log_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/log/SPAC_subset001_multispeaker"
+    result_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/result/SPAC_subset001_multispeaker"
+
+  resources:
+    # Runtime resources used by Python; PBS allocation is set in fastSpeech2_v2.pbs.
+    ncpu: 2
+    ngpu: 2
+    omp_num_threads: 2
+
+  data_loader:
+    num_workers: 2
+    pin_memory: True
+    prefetch_factor: 2
+
+  step:
+    total_step: 900000
+    log_step: 1000
+    # Console/TensorBoard loss reporting interval.
+    report_step: 5000
+    synth_step: 1000
+    val_step: 1000
+    save_step: 100000
+
+  optimizer:
+    batch_size: 16
+    betas: [0.9, 0.98]
+    eps: 0.000000001
+    weight_decay: 0.0
+    grad_clip_thresh: 1.0
+    grad_acc_step: 1
+    warm_up_step: 4000
+    anneal_steps: [300000, 400000, 500000]
+    anneal_rate: 0.3
+
+gen:
+  source:
+    corpus_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_subset/SPAC_subset001/dev"
+    split: "dev"
+    id_field: "id"
+    speaker_field: "speaker"
+    text_field: "norm_text_with_disfluency"
+    speaker_filter: *speaker_subset
+
+  generation:
+    sample_count: 100
+    selection: "first"
+    seed: 1234
+    batch_size: 8
+    skip_unknown_speakers: True
+
+  output:
+    subdir: "dev_samples"
+    include_step_subdir: True
+    filename_prefix: "sapc_multi_dev"
+
+  control:
+    pitch: 1.0
+    energy: 1.0
+    duration: 1.0
+
+model:
+  multi_speaker: True
+  max_seq_len: 1000
+
+  vocoder:
+    model: "HiFi-GAN"
+    speaker: "universal"
+
+  transformer:
+    encoder_layer: 4
+    encoder_head: 2
+    encoder_hidden: 256
+    decoder_layer: 6
+    decoder_head: 2
+    decoder_hidden: 256
+    conv_filter_size: 1024
+    conv_kernel_size: [9, 1]
+    encoder_dropout: 0.2
+    decoder_dropout: 0.2
+
+  variance_predictor:
+    filter_size: 256
+    kernel_size: 3
+    dropout: 0.5
+
+  variance_embedding:
+    pitch_quantization: "linear"
+    energy_quantization: "linear"
+    n_bins: 256

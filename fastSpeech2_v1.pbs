@@ -50,10 +50,23 @@ def emit(name, value, export=False):
 
 
 run_config = load_config(sys.argv[1], "run")
-resources_config = load_config(sys.argv[2], "resources") if os.path.exists(sys.argv[2]) else {}
+resources_source = load_config(sys.argv[2]) if os.path.exists(sys.argv[2]) else {}
+model_config = resources_source.get("model", {})
+if "train" in resources_source:
+    train_config = resources_source["train"]
+    resources_config = train_config.get("resources", resources_source.get("resources", {}))
+elif "resources" in resources_source:
+    train_config = {}
+    resources_config = resources_source["resources"]
+else:
+    train_config = {}
+    resources_config = resources_source
+data_loader_config = train_config.get("data_loader", resources_source.get("data_loader", {}))
 speaker = str(run_config.get("speaker", "")).strip()
-if speaker in ("", "CHANGE_ME", "<speaker_id>"):
-    raise SystemExit("Set run.speaker in config/SAPC_subset001/fastSpeech2_v1.yaml before qsub.")
+if speaker in ("CHANGE_ME", "<speaker_id>"):
+    speaker = ""
+if not model_config.get("multi_speaker", False) and speaker == "":
+    raise SystemExit("Set run.speaker before qsub, or use a multi-speaker config.")
 
 stages = run_config.get("stages", {})
 training = run_config.get("training", {})
@@ -62,7 +75,7 @@ mfa = run_config.get("mfa", {})
 ncpu = resources_config.get("ncpu", os.environ.get("PBS_NCPUS", 2))
 ngpu = resources_config.get("ngpu", os.environ.get("PBS_NGPUS", 0))
 omp_num_threads = resources_config.get("omp_num_threads", ncpu)
-num_workers = resources_config.get("data_loader_num_workers")
+num_workers = data_loader_config.get("num_workers")
 
 emit("SAPC_SPEAKER", speaker, export=True)
 emit("FASTSPEECH2_NCPU", ncpu, export=True)
@@ -76,7 +89,7 @@ emit("RUN_MFA", as_flag(stages.get("mfa", True)))
 emit("RUN_PREPROCESS", as_flag(stages.get("preprocess", True)))
 emit("RUN_TRAIN", as_flag(stages.get("train", True)))
 emit("RUN_GENERATE", as_flag(stages.get("generate", True)))
-emit("RESTORE_STEP", training.get("restore_step", 0))
+emit("RESTORE_STEP", training.get("restore_step", "latest"))
 emit("PRETRAINED_CHECKPOINT", training.get("pretrained_checkpoint") or "")
 emit("GENERATE_RESTORE_STEP", generation.get("restore_step", "latest"))
 emit("MFA_BIN", mfa.get("bin", "mfa"))
@@ -118,11 +131,11 @@ if [[ -n "${MFA_DICTIONARY_OVERRIDE}" ]]; then
 fi
 
 if [[ -n "${PBS_NCPUS:-}" && "${FASTSPEECH2_NCPU}" != "${PBS_NCPUS}" ]]; then
-  echo "[WARN] resources.ncpu=${FASTSPEECH2_NCPU} but PBS_NCPUS=${PBS_NCPUS}."
+  echo "[WARN] train.resources.ncpu=${FASTSPEECH2_NCPU} but PBS_NCPUS=${PBS_NCPUS}."
 fi
 
 if [[ -n "${PBS_NGPUS:-}" && "${FASTSPEECH2_NGPU}" != "${PBS_NGPUS}" ]]; then
-  echo "[WARN] resources.ngpu=${FASTSPEECH2_NGPU} but PBS_NGPUS=${PBS_NGPUS}."
+  echo "[WARN] train.resources.ngpu=${FASTSPEECH2_NGPU} but PBS_NGPUS=${PBS_NGPUS}."
 fi
 
 mkdir -p \

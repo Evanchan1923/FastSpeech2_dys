@@ -1,12 +1,14 @@
-resources:
-  ncpu: 2
-  ngpu: 2
-  omp_num_threads: 2
-  data_loader_num_workers: 2
-
 run:
-  speaker: "CHANGE_ME"
+  speaker: "71bfe758-dfaa-4227-8365-08dca350f4dc"         # Middle 0.25
   venv_dir: "/srv/scratch/z5327748/venv/FastSpeech_tts"
+
+  training:
+    pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"
+
+  mfa:
+    bin: "mfa"
+    acoustic_model: "english"
+    dictionary: null
 
   stages:
     prepare_align: True
@@ -15,26 +17,14 @@ run:
     train: True
     generate: True
 
-  training:
-    restore_step: "latest"
-    pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"
-
-  generation:
-    restore_step: "latest"
-
-  mfa:
-    bin: "mfa"
-    acoustic_model: "english"
-    dictionary: null
-
 preprocess:
-  dataset: "SAPC_Dysarthric"
-
   path:
     corpus_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_subset/SPAC_subset001/train"
     lexicon_path: "text/lexicon/librispeech-lexicon.txt"
     raw_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS/raw_data/SPAC_subset001/${SAPC_SPEAKER}"
     preprocessed_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS/preprocessed_data/SPAC_subset001/${SAPC_SPEAKER}"
+
+  dataset: "SAPC_Dysarthric"
 
   sapc_hf:
     split: "train"
@@ -49,6 +39,7 @@ preprocess:
       text_cleaners: ["english_cleaners"]
       language: "en"
     audio:
+      # Target rate for preprocessing/vocoder compatibility; source audio is resampled if needed.
       sampling_rate: 22050
       max_wav_value: 32768.0
     stft:
@@ -72,13 +63,25 @@ train:
     log_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/log/SPAC_subset001/${SAPC_SPEAKER}"
     result_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/result/SPAC_subset001/${SAPC_SPEAKER}"
 
+  resources:
+    # Runtime resources used by Python; PBS allocation is set in fastSpeech2_v1.pbs.
+    ncpu: 2
+    ngpu: 2
+    omp_num_threads: 2
+
   data_loader:
     num_workers: 2
     pin_memory: True
     prefetch_factor: 2
 
-  logging:
-    use_vocoder: True
+  step:
+    total_step: 900000
+    log_step: 1000
+    # Console/TensorBoard loss reporting interval.
+    report_step: 5000
+    synth_step: 1000
+    val_step: 1000
+    save_step: 100000
 
   optimizer:
     batch_size: 16
@@ -91,14 +94,6 @@ train:
     anneal_steps: [300000, 400000, 500000]
     anneal_rate: 0.3
 
-  step:
-    total_step: 900000
-    log_step: 500
-    report_step: 5000
-    synth_step: 1000
-    val_step: 1000
-    save_step: 100000
-
 gen:
   source:
     corpus_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_subset/SPAC_subset001/dev"
@@ -109,7 +104,6 @@ gen:
     speaker_filter: "${SAPC_SPEAKER}"
 
   generation:
-    restore_step: "latest"
     sample_count: 100
     selection: "first"
     seed: 1234
