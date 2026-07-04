@@ -2,6 +2,8 @@
 
 ## 2026-07-04
 
+- Pinned `setuptools==68.2.2` so `librosa` can import `pkg_resources` at runtime in the server venv.
+- Added a `pkg_resources` repair command to `docs/PBS_VENV_SETUP.md`.
 - Added `config/SAPC_subset001/fastSpeech2_v2.yaml` for true multi-speaker SAPC training and `fastSpeech2_v2.pbs` to submit it.
 - Updated v2 to use a single `run.speakers` list for selected-speaker multi-speaker training and generation.
 - Updated the PBS setup smoke test to validate both v1 per-speaker and v2 selected-speaker multi-speaker configs.

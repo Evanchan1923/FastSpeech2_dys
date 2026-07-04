@@ -2,6 +2,8 @@
 
 ## 2026-07-04
 
+- Pinned `setuptools==68.2.2` in `requirements.txt` to provide `pkg_resources` for `librosa`.
+- Added an existing-venv repair snippet for `ModuleNotFoundError: No module named 'pkg_resources'` to `docs/PBS_VENV_SETUP.md`.
 - Added `config/SAPC_subset001/fastSpeech2_v2.yaml` for true multi-speaker SAPC training across a selected speaker subset.
 - Updated v2 to train/generate only the speaker IDs listed once in `run.speakers`.
 - Added `fastSpeech2_v2.pbs` as a PBS wrapper that submits the v2 multi-speaker config.

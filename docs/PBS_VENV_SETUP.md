@@ -20,7 +20,7 @@ rm -rf /srv/scratch/z5327748/venv/FastSpeech_tts
 python -m venv /srv/scratch/z5327748/venv/FastSpeech_tts
 source /srv/scratch/z5327748/venv/FastSpeech_tts/bin/activate
 
-python -m pip install --upgrade pip setuptools wheel
+python -m pip install --upgrade pip wheel
 python -m pip install -r requirements.txt
 python -m pip check
 ```
@@ -28,6 +28,20 @@ python -m pip check
 The requirements are pinned for `python/3.10.8`. If pip previously failed while
 building old NumPy from source, remove the venv and recreate it with the commands
 above so the updated Python 3.10 wheels are installed into a clean environment.
+`setuptools` is pinned because `librosa` imports `pkg_resources` at runtime.
+
+If you only need to repair an existing venv after `ModuleNotFoundError:
+No module named 'pkg_resources'`, run:
+
+```bash
+source /srv/scratch/z5327748/venv/FastSpeech_tts/bin/activate
+python -m pip install --force-reinstall setuptools==68.2.2
+python - <<'PY'
+import pkg_resources
+import librosa
+print("pkg_resources and librosa imports passed")
+PY
+```
 
 ## 2. Confirm The Run Config
 
