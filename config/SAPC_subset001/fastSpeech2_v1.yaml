@@ -19,10 +19,10 @@ run:
 
 preprocess:
   path:
-    corpus_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_subset/SPAC_subset001/train"
+    corpus_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_full/train"
     lexicon_path: "text/lexicon/librispeech-lexicon.txt"
-    raw_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS/raw_data/SPAC_subset001/${SAPC_SPEAKER}"
-    preprocessed_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS/preprocessed_data/SPAC_subset001/${SAPC_SPEAKER}"
+    raw_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS/raw_data/${SAPC_SPEAKER}"
+    preprocessed_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS/preprocessed_data/${SAPC_SPEAKER}"
 
   dataset: "SAPC_Dysarthric"
 
@@ -59,9 +59,9 @@ preprocess:
 
 train:
   path:
-    ckpt_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/ckpt/SPAC_subset001/${SAPC_SPEAKER}"
-    log_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/log/SPAC_subset001/${SAPC_SPEAKER}"
-    result_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/result/SPAC_subset001/${SAPC_SPEAKER}"
+    ckpt_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/ckpt/${SAPC_SPEAKER}"
+    log_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/log/${SAPC_SPEAKER}"
+    result_path: "/srv/scratch/speechdata/jinghao/fastSpeech2_result/output/result/${SAPC_SPEAKER}"
 
   resources:
     # Runtime resources used by Python; PBS allocation is set in fastSpeech2_v1.pbs.
@@ -96,7 +96,7 @@ train:
 
 gen:
   source:
-    corpus_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_subset/SPAC_subset001/dev"
+    corpus_path: "/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_full/dev"
     split: "dev"
     id_field: "id"
     speaker_field: "speaker"

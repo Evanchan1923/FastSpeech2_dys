@@ -44,6 +44,15 @@ run:
   speaker: "<speaker_id>"
 ```
 
+For `fastSpeech2_v2.yaml`, set the selected multi-speaker subset instead:
+
+```yaml
+run:
+  speakers:
+    - "<speaker_id>"
+    - "<speaker_id>"
+```
+
 Training auto-resume is the default. The job resumes the newest checkpoint in
 the checkpoint directory. If no checkpoint exists, it starts from step 0 and
 uses `pretrained_checkpoint` if that path is set.
@@ -84,41 +93,69 @@ import sys
 from utils.config import load_config, load_configs
 
 repo = Path.cwd()
-config_path = repo / "config/SAPC_subset001/fastSpeech2_v1.yaml"
-
-subprocess.run(["bash", "-n", "fastSpeech2_v1.pbs"], check=True)
-
-run_config = load_config(config_path, "run")
-preprocess_config, model_config, train_config = load_configs(
-    config_path,
-    config_path,
-    config_path,
-)
-
-speaker = str(run_config.get("speaker", "")).strip()
-if speaker in ("", "CHANGE_ME", "<speaker_id>"):
-    raise SystemExit("Set run.speaker in config/SAPC_subset001/fastSpeech2_v1.yaml before qsub.")
+jobs = [
+    (
+        "v1-per-speaker",
+        repo / "config/SAPC_subset001/fastSpeech2_v1.yaml",
+        repo / "fastSpeech2_v1.pbs",
+    ),
+    (
+        "v2-multi-speaker",
+        repo / "config/SAPC_subset001/fastSpeech2_v2.yaml",
+        repo / "fastSpeech2_v2.pbs",
+    ),
+]
 
 import torch
 
-ckpt_dir = Path(train_config["path"]["ckpt_path"])
-steps = []
-if ckpt_dir.exists():
-    for path in ckpt_dir.glob("*.pth.tar"):
-        try:
-            steps.append(int(path.name.split(".")[0]))
-        except ValueError:
-            pass
+for label, config_path, pbs_path in jobs:
+    subprocess.run(["bash", "-n", str(pbs_path)], check=True)
+
+    run_config = load_config(config_path, "run")
+    preprocess_config, model_config, train_config = load_configs(
+        config_path,
+        config_path,
+        config_path,
+    )
+    gen_config = load_config(config_path, "gen")
+
+    if model_config.get("multi_speaker", False):
+        speakers = run_config.get("speakers") or []
+        if not speakers:
+            raise SystemExit("Set run.speakers in {} before qsub.".format(config_path))
+        speaker_summary = "subset: {}".format(", ".join(str(s) for s in speakers))
+        if preprocess_config.get("sapc_hf", {}).get("speaker_filter") != speakers:
+            raise SystemExit("{} preprocess speaker_filter does not match run.speakers.".format(label))
+        if gen_config.get("source", {}).get("speaker_filter") != speakers:
+            raise SystemExit("{} generation speaker_filter does not match run.speakers.".format(label))
+    else:
+        speaker = str(run_config.get("speaker", "")).strip()
+        if speaker in ("", "CHANGE_ME", "<speaker_id>"):
+            raise SystemExit("Set run.speaker in {} before qsub.".format(config_path))
+        speaker_summary = speaker
+
+    ckpt_dir = Path(train_config["path"]["ckpt_path"])
+    steps = []
+    if ckpt_dir.exists():
+        for path in ckpt_dir.glob("*.pth.tar"):
+            try:
+                steps.append(int(path.name.split(".")[0]))
+            except ValueError:
+                pass
+
+    print("[{}] config: {}".format(label, config_path))
+    print("[{}] pbs: {}".format(label, pbs_path))
+    print("[{}] multi_speaker: {}".format(label, model_config.get("multi_speaker", False)))
+    print("[{}] speaker(s): {}".format(label, speaker_summary))
+    print("[{}] runtime ncpu: {}".format(label, train_config.get("resources", {}).get("ncpu")))
+    print("[{}] runtime ngpu: {}".format(label, train_config.get("resources", {}).get("ngpu")))
+    print("[{}] checkpoint dir: {}".format(label, ckpt_dir))
+    print("[{}] latest checkpoint: {}".format(label, max(steps) if steps else "none; training will start at step 0"))
 
 print("Python:", sys.version.split()[0])
 print("Torch:", torch.__version__)
 print("CUDA available:", torch.cuda.is_available())
 print("CUDA device count:", torch.cuda.device_count())
-print("Speaker:", speaker)
-print("Runtime ncpu:", train_config.get("resources", {}).get("ncpu"))
-print("Runtime ngpu:", train_config.get("resources", {}).get("ngpu"))
-print("Checkpoint dir:", ckpt_dir)
-print("Latest checkpoint:", max(steps) if steps else "none; training will start at step 0")
-print("PBS syntax/config smoke test passed.")
+print("PBS syntax/config smoke tests passed.")
 PY
 ```

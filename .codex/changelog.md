@@ -4,6 +4,7 @@
 
 - Added `config/SAPC_subset001/fastSpeech2_v2.yaml` for true multi-speaker SAPC training and `fastSpeech2_v2.pbs` to submit it.
 - Updated v2 to use a single `run.speakers` list for selected-speaker multi-speaker training and generation.
+- Updated the PBS setup smoke test to validate both v1 per-speaker and v2 selected-speaker multi-speaker configs.
 - Updated pretrained checkpoint loading so multi-speaker models can initialize from compatible single-speaker checkpoint weights while randomly initializing incompatible layers.
 - Reordered `config/SAPC_subset001/fastSpeech2_v1.yaml` so CPU/GPU settings and path-heavy settings are at the top.
 - Added concise comments for non-obvious YAML settings such as runtime resources, auto-resume, sample-rate compatibility, and loss reporting cadence.
