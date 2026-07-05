@@ -1,8 +1,12 @@
 # Decisions
 
+## 2026-07-05
+
+- Use the Katana `FastSpeech_tts` conda environment for Python, MFA, preprocessing, training, and generation; do not keep Python venv settings in SAPC YAML.
+- Keep conda activation in `fastSpeech2_v1.pbs` through `CONDA_SH` and `CONDA_ENV_NAME` so v1 and the v2 wrapper share one environment path.
+
 ## 2026-07-04
 
-- Install MFA through pip in the existing FastSpeech2 venv because this server/repo workflow cannot use conda; keep `run.mfa.bin: "mfa"` and preflight it in PBS.
 - Add v2 as true multi-speaker training rather than cascaded per-speaker fine-tuning; keep cascade orchestration out of the model YAML.
 - Use `run.speakers` in v2 as the single selected-speaker list, referenced by both train preprocessing and dev generation filters.
 - Use a thin `fastSpeech2_v2.pbs` wrapper around the shared v1 PBS pipeline so stage logic stays in one place.

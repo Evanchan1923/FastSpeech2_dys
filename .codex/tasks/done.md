@@ -1,5 +1,14 @@
 # Done
 
+## 2026-07-05
+
+- Updated PBS setup documentation for the Katana `FastSpeech_tts` conda environment.
+- Updated README to link to `docs/PBS_CONDA_SETUP.md`.
+- Removed unused `run.venv_dir` settings from SAPC v1/v2 configs.
+- Kept MFA installation documented as conda-provided rather than pip-pinned in `requirements.txt`.
+- Made the PBS MFA preflight fail fast when `mfa version` cannot start.
+- Trimmed non-essential diagnostics from `fastSpeech2_v1.pbs` while keeping the MFA startup preflight.
+
 ## 2026-07-04
 
 - Documented Montreal Forced Aligner installation for the SAPC PBS workflow.

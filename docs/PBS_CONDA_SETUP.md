@@ -1,68 +1,58 @@
-# PBS Venv Setup
+# PBS Conda Setup
 
-Use these commands on the server from the repository root. They create the Python
-venv used by `config/SAPC_subset001/fastSpeech2_v1.yaml` and `fastSpeech2_v1.pbs`.
-The PBS script activates this default venv before reading YAML configs, so keep
-`run.venv_dir` pointed here unless you also update `DEFAULT_VENV_DIR` for the
-job.
-The same venv is used by `fastSpeech2_v2.pbs` for the multi-speaker config.
+Use these commands on Katana from the repository root. The PBS scripts activate
+the `FastSpeech_tts` conda environment before reading YAML configs, running MFA,
+preprocessing, training, or generation.
 
-## 1. Create The Venv
+The default paths in `fastSpeech2_v1.pbs` are:
+
+```bash
+CONDA_SH=/srv/scratch/z5327748/miniforge3/etc/profile.d/conda.sh
+CONDA_ENV_NAME=FastSpeech_tts
+```
+
+Override those at `qsub` time only if you intentionally use another conda
+install or environment.
+
+## 1. Activate The Conda Env
 
 ```bash
 cd /path/to/FastSpeech2_dys
 
-module load python/3.10.8
 module load ffmpeg/7.0.2
 module load cuda/12.1.1
 
-rm -rf /srv/scratch/z5327748/venv/FastSpeech_tts
-python -m venv /srv/scratch/z5327748/venv/FastSpeech_tts
-source /srv/scratch/z5327748/venv/FastSpeech_tts/bin/activate
+source /srv/scratch/z5327748/miniforge3/etc/profile.d/conda.sh
+conda activate FastSpeech_tts
 
-python -m pip install --upgrade pip wheel
+which python
+python --version
+```
+
+## 2. Install/Check Python Packages
+
+MFA should remain installed through conda. The pip requirements file is for the
+FastSpeech2 Python package stack.
+
+```bash
 python -m pip install -r requirements.txt
 python -m pip check
 ```
 
-The requirements are pinned for `python/3.10.8`. If pip previously failed while
-building old NumPy from source, remove the venv and recreate it with the commands
-above so the updated Python 3.10 wheels are installed into a clean environment.
-`setuptools` is pinned because `librosa` imports `pkg_resources` at runtime.
-
-If you only need to repair an existing venv after `ModuleNotFoundError:
-No module named 'pkg_resources'`, run:
+If `librosa` fails with `ModuleNotFoundError: No module named 'pkg_resources'`,
+repair setuptools inside the conda environment:
 
 ```bash
-source /srv/scratch/z5327748/venv/FastSpeech_tts/bin/activate
 python -m pip install --force-reinstall setuptools==68.2.2
-python - <<'PY'
-import pkg_resources
-import librosa
-print("pkg_resources and librosa imports passed")
-PY
 ```
 
-## 2. Install Montreal Forced Aligner
+## 3. Check Montreal Forced Aligner
 
-MFA is installed into the same Python venv as FastSpeech2. It is pinned in
-`requirements.txt`, so a clean venv gets it during `python -m pip install -r
-requirements.txt`.
+MFA is provided by the conda environment. A valid setup should show the conda env
+`mfa` executable and print version `3.3.9`.
 
 ```bash
-source /srv/scratch/z5327748/venv/FastSpeech_tts/bin/activate
-python -m pip install --upgrade-strategy only-if-needed montreal-forced-aligner==3.3.9 kalpy-kaldi==0.10.1
-python -m pip check
 which mfa
-mfa version
-```
-
-If `mfa version` fails with `ModuleNotFoundError: No module named '_kalpy'`,
-repair the existing venv with:
-
-```bash
-source /srv/scratch/z5327748/venv/FastSpeech_tts/bin/activate
-python -m pip install --upgrade-strategy only-if-needed --force-reinstall kalpy-kaldi==0.10.1
 mfa version
 ```
 
@@ -72,7 +62,7 @@ Download the acoustic model used by the SAPC configs:
 mfa model download acoustic english_mfa
 ```
 
-The run config expects `mfa` to be on `PATH` after the venv is activated:
+The run config expects `mfa` to be on `PATH` after the conda env is activated:
 
 ```yaml
 run:
@@ -81,11 +71,9 @@ run:
     acoustic_model: "english_mfa"
 ```
 
-If `mfa version` still fails after installing `kalpy-kaldi`, the server is
-missing another MFA native alignment dependency. Fix that before submitting PBS;
-the job now preflights `mfa` and exits early when it is unavailable.
+The PBS job also preflights `mfa` and exits early when it is unavailable.
 
-## 3. Confirm The Run Config
+## 4. Confirm The Run Config
 
 Edit:
 
@@ -113,7 +101,7 @@ Training auto-resume is the default. The job resumes the newest checkpoint in
 the checkpoint directory. If no checkpoint exists, it starts from step 0 and
 uses `pretrained_checkpoint` if that path is set.
 
-## 4. Confirm CPU/GPU Settings
+## 5. Confirm CPU/GPU Settings
 
 Edit:
 
@@ -136,13 +124,14 @@ train:
 The training script uses DataParallel when more than one visible GPU is
 requested.
 
-## 5. Smoke-Test The PBS Setup
+## 6. Smoke-Test The PBS Setup
 
-Paste this after activating the venv:
+Paste this after activating the conda env:
 
 ```bash
 python - <<'PY'
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -163,6 +152,12 @@ jobs = [
 ]
 
 import torch
+
+mfa_path = shutil.which("mfa")
+if not mfa_path:
+    raise SystemExit("mfa is not on PATH; activate the FastSpeech_tts conda env first.")
+subprocess.run(["mfa", "version"], check=True)
+print("MFA:", mfa_path)
 
 for label, config_path, pbs_path in jobs:
     subprocess.run(["bash", "-n", str(pbs_path)], check=True)

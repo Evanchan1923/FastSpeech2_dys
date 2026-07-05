@@ -1,10 +1,19 @@
 # Changelog
 
+## 2026-07-05
+
+- Switched the documented Katana runtime from a Python venv to the `FastSpeech_tts` conda environment.
+- Renamed the PBS setup guide to `docs/PBS_CONDA_SETUP.md` and updated README links.
+- Removed stale `run.venv_dir` entries from the SAPC v1/v2 YAML configs because the PBS script now activates conda directly.
+- Kept MFA out of `requirements.txt`; MFA is provided by the conda environment.
+- Tightened the PBS MFA preflight so a broken `mfa version` stops before data preparation.
+- Trimmed non-essential PBS diagnostics while keeping the conda activation and MFA startup preflight.
+
 ## 2026-07-04
 
 - Added pip/venv MFA setup notes to `docs/PBS_VENV_SETUP.md`.
 - Added a PBS preflight check that reports the MFA executable/version and fails before data preparation if `mfa` is missing.
-- Pinned `montreal-forced-aligner==3.3.9` and `kalpy-kaldi==0.10.1` in `requirements.txt`, and updated SAPC MFA settings to use venv `mfa` with the current `english_mfa` acoustic model.
+- Tested pip/venv MFA dependency pins before switching the Katana runtime to conda-provided MFA.
 - Pinned `setuptools==68.2.2` so `librosa` can import `pkg_resources` at runtime in the server venv.
 - Added a `pkg_resources` repair command to `docs/PBS_VENV_SETUP.md`.
 - Added `config/SAPC_subset001/fastSpeech2_v2.yaml` for true multi-speaker SAPC training and `fastSpeech2_v2.pbs` to submit it.

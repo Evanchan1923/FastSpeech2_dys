@@ -80,8 +80,8 @@ stays in `fastSpeech2_v1.pbs`.
 Training loss/report cadence is controlled by `train.step.report_step`; the SAPC
 default is `5000`.
 
-For Python venv setup and a copy-paste PBS smoke test, see
-`docs/PBS_VENV_SETUP.md`.
+For conda environment setup and a copy-paste PBS smoke test, see
+`docs/PBS_CONDA_SETUP.md`.
 
 ## Per-Speaker Fine-Tuning
 

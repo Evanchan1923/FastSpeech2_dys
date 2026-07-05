@@ -1,5 +1,4 @@
 run:
-  venv_dir: "/srv/scratch/z5327748/venv/FastSpeech_tts"
   speakers: &speaker_subset
     # Train/generate only these speakers; add or remove speaker IDs here.
     - "71bfe758-dfaa-4227-8365-08dca350f4dc"

@@ -1,6 +1,5 @@
 run:
   speaker: "71bfe758-dfaa-4227-8365-08dca350f4dc"         # Middle 0.25
-  venv_dir: "/srv/scratch/z5327748/venv/FastSpeech_tts"
 
   training:
     pretrained_checkpoint: "/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model/pretrained/LJSpeech/900000.pth.tar"

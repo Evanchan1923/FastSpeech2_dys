@@ -18,6 +18,9 @@ and true multi-speaker training.
 Use `qsub fastSpeech2_v1.pbs` for per-speaker fine-tuning and
 `qsub fastSpeech2_v2.pbs` for multi-speaker training.
 
+The PBS scripts activate the Katana `FastSpeech_tts` conda environment before
+loading YAML, running MFA, preprocessing, training, or generation.
+
 ## Server Paths
 
 - Model/vocoder assets: `/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model`

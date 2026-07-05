@@ -19,20 +19,35 @@ TRAIN_CONFIG="${TRAIN_CONFIG:-${CONFIG_FILE}}"
 GEN_CONFIG="${GEN_CONFIG:-${CONFIG_FILE}}"
 RUN_CONFIG="${RUN_CONFIG:-${CONFIG_FILE}}"
 RESOURCES_CONFIG="${RESOURCES_CONFIG:-${CONFIG_FILE}}"
-DEFAULT_VENV_DIR="${DEFAULT_VENV_DIR:-/srv/scratch/z5327748/venv/FastSpeech_tts}"
+
+# ============================================================
+# Conda environment
+# ============================================================
+CONDA_SH="${CONDA_SH:-/srv/scratch/z5327748/miniforge3/etc/profile.d/conda.sh}"
+CONDA_ENV_NAME="${CONDA_ENV_NAME:-FastSpeech_tts}"
 
 export PYTHONUNBUFFERED=1
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-${PBS_NCPUS:-2}}"
 export FASTSPEECH2_MODEL_ROOT="${FASTSPEECH2_MODEL_ROOT:-/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model}"
 
-module load python/3.10.8
+# ============================================================
+# Load server modules
+# Do NOT load python module here, because conda provides python
+# ============================================================
 module load ffmpeg/7.0.2
 module load cuda/12.1.1
 
-source "${DEFAULT_VENV_DIR}/bin/activate"
+# ============================================================
+# Activate conda environment
+# ============================================================
+source "${CONDA_SH}"
+conda activate "${CONDA_ENV_NAME}"
 
+# ============================================================
+# Read run/resources config
+# ============================================================
 eval "$(
-  python - "${RUN_CONFIG}" "${RESOURCES_CONFIG}" "${DEFAULT_VENV_DIR}" <<'PY'
+  python - "${RUN_CONFIG}" "${RESOURCES_CONFIG}" <<'PY'
 import os
 import shlex
 import sys
@@ -51,7 +66,9 @@ def emit(name, value, export=False):
 
 run_config = load_config(sys.argv[1], "run")
 resources_source = load_config(sys.argv[2]) if os.path.exists(sys.argv[2]) else {}
+
 model_config = resources_source.get("model", {})
+
 if "train" in resources_source:
     train_config = resources_source["train"]
     resources_config = train_config.get("resources", resources_source.get("resources", {}))
@@ -61,10 +78,13 @@ elif "resources" in resources_source:
 else:
     train_config = {}
     resources_config = resources_source
+
 data_loader_config = train_config.get("data_loader", resources_source.get("data_loader", {}))
+
 speaker = str(run_config.get("speaker", "")).strip()
 if speaker in ("CHANGE_ME", "<speaker_id>"):
     speaker = ""
+
 if not model_config.get("multi_speaker", False) and speaker == "":
     raise SystemExit("Set run.speaker before qsub, or use a multi-speaker config.")
 
@@ -72,6 +92,7 @@ stages = run_config.get("stages", {})
 training = run_config.get("training", {})
 generation = run_config.get("generation", {})
 mfa = run_config.get("mfa", {})
+
 ncpu = resources_config.get("ncpu", os.environ.get("PBS_NCPUS", 2))
 ngpu = resources_config.get("ngpu", os.environ.get("PBS_NGPUS", 0))
 omp_num_threads = resources_config.get("omp_num_threads", ncpu)
@@ -81,27 +102,30 @@ emit("SAPC_SPEAKER", speaker, export=True)
 emit("FASTSPEECH2_NCPU", ncpu, export=True)
 emit("FASTSPEECH2_NGPU", ngpu, export=True)
 emit("OMP_NUM_THREADS", omp_num_threads, export=True)
+
 if num_workers is not None:
     emit("FASTSPEECH2_NUM_WORKERS", num_workers, export=True)
-emit("VENV_DIR", run_config.get("venv_dir", sys.argv[3]))
+
 emit("RUN_PREPARE_ALIGN", as_flag(stages.get("prepare_align", True)))
 emit("RUN_MFA", as_flag(stages.get("mfa", True)))
 emit("RUN_PREPROCESS", as_flag(stages.get("preprocess", True)))
 emit("RUN_TRAIN", as_flag(stages.get("train", True)))
 emit("RUN_GENERATE", as_flag(stages.get("generate", True)))
+
 emit("RESTORE_STEP", training.get("restore_step", "latest"))
 emit("PRETRAINED_CHECKPOINT", training.get("pretrained_checkpoint") or "")
+
 emit("GENERATE_RESTORE_STEP", generation.get("restore_step", "latest"))
+
 emit("MFA_BIN", mfa.get("bin", "mfa"))
 emit("MFA_ACOUSTIC_MODEL", mfa.get("acoustic_model", "english_mfa"))
 emit("MFA_DICTIONARY_OVERRIDE", mfa.get("dictionary") or "")
 PY
 )"
 
-if [[ "${VENV_DIR}" != "${DEFAULT_VENV_DIR}" ]]; then
-  source "${VENV_DIR}/bin/activate"
-fi
-
+# ============================================================
+# Read data/model/train paths
+# ============================================================
 eval "$(
   python - "${PREPROCESS_CONFIG}" "${MODEL_CONFIG}" "${TRAIN_CONFIG}" <<'PY'
 import shlex
@@ -110,6 +134,7 @@ import sys
 from utils.config import load_configs
 
 preprocess_config, _, train_config = load_configs(sys.argv[1], sys.argv[2], sys.argv[3])
+
 paths = {
     "DATASET_NAME": preprocess_config["dataset"],
     "CORPUS_PATH": preprocess_config["path"]["corpus_path"],
@@ -120,24 +145,21 @@ paths = {
     "LOG_PATH": train_config["path"]["log_path"],
     "RESULT_PATH": train_config["path"]["result_path"],
 }
+
 for key, value in paths.items():
     print("{}={}".format(key, shlex.quote(str(value))))
 PY
 )"
 
 MFA_DICTIONARY="${MFA_DICTIONARY:-${LEXICON_PATH}}"
+
 if [[ -n "${MFA_DICTIONARY_OVERRIDE}" ]]; then
   MFA_DICTIONARY="${MFA_DICTIONARY_OVERRIDE}"
 fi
 
-if [[ -n "${PBS_NCPUS:-}" && "${FASTSPEECH2_NCPU}" != "${PBS_NCPUS}" ]]; then
-  echo "[WARN] train.resources.ncpu=${FASTSPEECH2_NCPU} but PBS_NCPUS=${PBS_NCPUS}."
-fi
-
-if [[ -n "${PBS_NGPUS:-}" && "${FASTSPEECH2_NGPU}" != "${PBS_NGPUS}" ]]; then
-  echo "[WARN] train.resources.ngpu=${FASTSPEECH2_NGPU} but PBS_NGPUS=${PBS_NGPUS}."
-fi
-
+# ============================================================
+# Create output directories
+# ============================================================
 mkdir -p \
   "${RAW_PATH}" \
   "${PREPROCESSED_PATH}" \
@@ -145,27 +167,37 @@ mkdir -p \
   "${LOG_PATH}" \
   "${RESULT_PATH}"
 
-if command -v nvidia-smi >/dev/null 2>&1; then
-  nvidia-smi
-fi
-
+# ============================================================
+# Check MFA
+# ============================================================
 if [[ "${RUN_MFA}" == "1" ]]; then
   if ! command -v "${MFA_BIN}" >/dev/null 2>&1; then
     echo "[ERROR] MFA binary not found: ${MFA_BIN}"
-    echo "[ERROR] Install Montreal Forced Aligner or set run.mfa.bin to the full MFA executable path."
     exit 127
   fi
-  echo "[INFO] MFA executable: $(command -v "${MFA_BIN}")"
-  "${MFA_BIN}" version || true
+
+  if ! "${MFA_BIN}" version; then
+    echo "[ERROR] MFA exists but cannot start. Check the active conda environment."
+    exit 1
+  fi
 fi
 
+# ============================================================
+# Prepare alignment data
+# ============================================================
 if [[ "${RUN_PREPARE_ALIGN}" == "1" ]]; then
   echo "[INFO] Running utils/server-based/prepare_align.py"
   python utils/server-based/prepare_align.py "${PREPROCESS_CONFIG}"
+else
+  echo "[INFO] RUN_PREPARE_ALIGN=0, skipping prepare_align"
 fi
 
+# ============================================================
+# Run MFA
+# ============================================================
 if [[ "${RUN_MFA}" == "1" ]]; then
   echo "[INFO] Running Montreal Forced Aligner"
+
   "${MFA_BIN}" align \
     "${RAW_PATH}" \
     "${MFA_DICTIONARY}" \
@@ -173,37 +205,56 @@ if [[ "${RUN_MFA}" == "1" ]]; then
     "${PREPROCESSED_PATH}" \
     --clean \
     --overwrite
+else
+  echo "[INFO] RUN_MFA=0, skipping MFA"
 fi
 
+# ============================================================
+# Preprocess
+# ============================================================
 if [[ "${RUN_PREPROCESS}" == "1" ]]; then
   echo "[INFO] Running utils/server-based/preprocess.py"
   python utils/server-based/preprocess.py "${PREPROCESS_CONFIG}"
+else
+  echo "[INFO] RUN_PREPROCESS=0, skipping preprocess"
 fi
 
+# ============================================================
+# Train
+# ============================================================
 if [[ "${RUN_TRAIN}" == "1" ]]; then
   echo "[INFO] Running FastSpeech2 training"
+
   TRAIN_ARGS=(
-    --restore_step "${RESTORE_STEP}" \
-    -p "${PREPROCESS_CONFIG}" \
-    -m "${MODEL_CONFIG}" \
+    --restore_step "${RESTORE_STEP}"
+    -p "${PREPROCESS_CONFIG}"
+    -m "${MODEL_CONFIG}"
     -t "${TRAIN_CONFIG}"
   )
+
   if [[ -n "${PRETRAINED_CHECKPOINT}" ]]; then
     TRAIN_ARGS+=(--pretrained_checkpoint "${PRETRAINED_CHECKPOINT}")
   fi
+
   python utils/server-based/train.py "${TRAIN_ARGS[@]}"
 else
   echo "[INFO] RUN_TRAIN=0, skipping FastSpeech2 training"
 fi
 
+# ============================================================
+# Generate samples
+# ============================================================
 if [[ "${RUN_GENERATE}" == "1" ]]; then
   echo "[INFO] Generating SAPC dev samples"
+
   python utils/server-based/generate_sapc_samples.py \
     --restore_step "${GENERATE_RESTORE_STEP}" \
     -p "${PREPROCESS_CONFIG}" \
     -m "${MODEL_CONFIG}" \
     -t "${TRAIN_CONFIG}" \
     -g "${GEN_CONFIG}"
+else
+  echo "[INFO] RUN_GENERATE=0, skipping generation"
 fi
 
 echo "Job finished at: $(date)"
