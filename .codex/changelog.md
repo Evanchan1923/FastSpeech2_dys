@@ -2,6 +2,9 @@
 
 ## 2026-07-04
 
+- Added pip/venv MFA setup notes to `docs/PBS_VENV_SETUP.md`.
+- Added a PBS preflight check that reports the MFA executable/version and fails before data preparation if `mfa` is missing.
+- Pinned `montreal-forced-aligner==3.3.9` and `kalpy-kaldi==0.10.1` in `requirements.txt`, and updated SAPC MFA settings to use venv `mfa` with the current `english_mfa` acoustic model.
 - Pinned `setuptools==68.2.2` so `librosa` can import `pkg_resources` at runtime in the server venv.
 - Added a `pkg_resources` repair command to `docs/PBS_VENV_SETUP.md`.
 - Added `config/SAPC_subset001/fastSpeech2_v2.yaml` for true multi-speaker SAPC training and `fastSpeech2_v2.pbs` to submit it.

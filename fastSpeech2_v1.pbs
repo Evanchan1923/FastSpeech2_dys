@@ -93,7 +93,7 @@ emit("RESTORE_STEP", training.get("restore_step", "latest"))
 emit("PRETRAINED_CHECKPOINT", training.get("pretrained_checkpoint") or "")
 emit("GENERATE_RESTORE_STEP", generation.get("restore_step", "latest"))
 emit("MFA_BIN", mfa.get("bin", "mfa"))
-emit("MFA_ACOUSTIC_MODEL", mfa.get("acoustic_model", "english"))
+emit("MFA_ACOUSTIC_MODEL", mfa.get("acoustic_model", "english_mfa"))
 emit("MFA_DICTIONARY_OVERRIDE", mfa.get("dictionary") or "")
 PY
 )"
@@ -147,6 +147,16 @@ mkdir -p \
 
 if command -v nvidia-smi >/dev/null 2>&1; then
   nvidia-smi
+fi
+
+if [[ "${RUN_MFA}" == "1" ]]; then
+  if ! command -v "${MFA_BIN}" >/dev/null 2>&1; then
+    echo "[ERROR] MFA binary not found: ${MFA_BIN}"
+    echo "[ERROR] Install Montreal Forced Aligner or set run.mfa.bin to the full MFA executable path."
+    exit 127
+  fi
+  echo "[INFO] MFA executable: $(command -v "${MFA_BIN}")"
+  "${MFA_BIN}" version || true
 fi
 
 if [[ "${RUN_PREPARE_ALIGN}" == "1" ]]; then

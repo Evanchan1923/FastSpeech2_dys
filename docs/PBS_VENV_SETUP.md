@@ -43,7 +43,49 @@ print("pkg_resources and librosa imports passed")
 PY
 ```
 
-## 2. Confirm The Run Config
+## 2. Install Montreal Forced Aligner
+
+MFA is installed into the same Python venv as FastSpeech2. It is pinned in
+`requirements.txt`, so a clean venv gets it during `python -m pip install -r
+requirements.txt`.
+
+```bash
+source /srv/scratch/z5327748/venv/FastSpeech_tts/bin/activate
+python -m pip install --upgrade-strategy only-if-needed montreal-forced-aligner==3.3.9 kalpy-kaldi==0.10.1
+python -m pip check
+which mfa
+mfa version
+```
+
+If `mfa version` fails with `ModuleNotFoundError: No module named '_kalpy'`,
+repair the existing venv with:
+
+```bash
+source /srv/scratch/z5327748/venv/FastSpeech_tts/bin/activate
+python -m pip install --upgrade-strategy only-if-needed --force-reinstall kalpy-kaldi==0.10.1
+mfa version
+```
+
+Download the acoustic model used by the SAPC configs:
+
+```bash
+mfa model download acoustic english_mfa
+```
+
+The run config expects `mfa` to be on `PATH` after the venv is activated:
+
+```yaml
+run:
+  mfa:
+    bin: "mfa"
+    acoustic_model: "english_mfa"
+```
+
+If `mfa version` still fails after installing `kalpy-kaldi`, the server is
+missing another MFA native alignment dependency. Fix that before submitting PBS;
+the job now preflights `mfa` and exits early when it is unavailable.
+
+## 3. Confirm The Run Config
 
 Edit:
 
@@ -71,7 +113,7 @@ Training auto-resume is the default. The job resumes the newest checkpoint in
 the checkpoint directory. If no checkpoint exists, it starts from step 0 and
 uses `pretrained_checkpoint` if that path is set.
 
-## 3. Confirm CPU/GPU Settings
+## 4. Confirm CPU/GPU Settings
 
 Edit:
 
@@ -94,7 +136,7 @@ train:
 The training script uses DataParallel when more than one visible GPU is
 requested.
 
-## 4. Smoke-Test The PBS Setup
+## 5. Smoke-Test The PBS Setup
 
 Paste this after activating the venv:
 

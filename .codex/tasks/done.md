@@ -2,6 +2,9 @@
 
 ## 2026-07-04
 
+- Documented Montreal Forced Aligner installation for the SAPC PBS workflow.
+- Added a `fastSpeech2_v1.pbs` preflight check for the configured MFA executable.
+- Pinned MFA plus `kalpy-kaldi` for pip/venv installation and switched v1/v2 SAPC configs to venv `mfa` with the current `english_mfa` acoustic model name.
 - Pinned `setuptools==68.2.2` in `requirements.txt` to provide `pkg_resources` for `librosa`.
 - Added an existing-venv repair snippet for `ModuleNotFoundError: No module named 'pkg_resources'` to `docs/PBS_VENV_SETUP.md`.
 - Added `config/SAPC_subset001/fastSpeech2_v2.yaml` for true multi-speaker SAPC training across a selected speaker subset.

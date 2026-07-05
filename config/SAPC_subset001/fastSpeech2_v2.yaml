@@ -10,7 +10,7 @@ run:
 
   mfa:
     bin: "mfa"
-    acoustic_model: "english"
+    acoustic_model: "english_mfa"
     dictionary: null
 
   stages:

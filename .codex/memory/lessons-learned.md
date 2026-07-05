@@ -2,6 +2,7 @@
 
 ## 2026-07-03
 
+- On environments where conda is unavailable, install Montreal Forced Aligner plus `kalpy-kaldi` via pip in the active venv and verify `mfa version`; for PBS jobs, preflight `mfa` before spending time on data preparation.
 - When consolidating YAML configs, add section extraction in the shared loader rather than teaching every caller a new file format.
 - `librosa==0.9.2` imports `pkg_resources`, so the runtime venv needs a setuptools version that still provides it; pinning `setuptools==68.2.2` avoids missing `pkg_resources` failures.
 - Python 3.10 cannot reliably install the original FastSpeech2-era pins such as `numpy==1.19.0`, `torch==1.7.0`, `librosa==0.7.2`, and `PyYAML==5.4.1`; keep `requirements.txt` aligned with the Python module loaded by PBS.
