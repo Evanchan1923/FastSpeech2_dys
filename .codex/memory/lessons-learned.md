@@ -3,6 +3,9 @@
 ## 2026-07-05
 
 - On Katana, the conda-forge MFA install is the reliable path for `mfa version 3.3.9`; keep PBS conda activation and MFA preflight in sync.
+- `mfa version` only confirms the MFA executable works; `mfa align` also needs the configured acoustic model downloaded, such as `mfa model download acoustic english_mfa`.
+- MFA alignment can still fail after model download if `montreal-forced-aligner` and `kalpy` are version-incompatible; `TrainingGraphCompiler.__init__() got an unexpected keyword argument 'use_g2p'` points to that package mismatch.
+- Pair MFA acoustic models with compatible MFA dictionaries, for example `english_mfa` with `english_us_mfa`, instead of using the repo Librispeech lexicon when MFA reports many dictionary phones missing from the acoustic model.
 
 ## 2026-07-03
 

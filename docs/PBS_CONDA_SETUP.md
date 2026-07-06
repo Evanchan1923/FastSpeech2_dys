@@ -60,6 +60,7 @@ Download the acoustic model used by the SAPC configs:
 
 ```bash
 mfa model download acoustic english_mfa
+mfa model download dictionary english_us_mfa
 ```
 
 The run config expects `mfa` to be on `PATH` after the conda env is activated:
@@ -69,6 +70,7 @@ run:
   mfa:
     bin: "mfa"
     acoustic_model: "english_mfa"
+    dictionary: "english_us_mfa"
 ```
 
 The PBS job also preflights `mfa` and exits early when it is unavailable.

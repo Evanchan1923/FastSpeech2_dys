@@ -8,6 +8,9 @@
 - Kept MFA installation documented as conda-provided rather than pip-pinned in `requirements.txt`.
 - Made the PBS MFA preflight fail fast when `mfa version` cannot start.
 - Trimmed non-essential diagnostics from `fastSpeech2_v1.pbs` while keeping the MFA startup preflight.
+- Diagnosed `fastspeech2_v1.log`: MFA starts, but the `english_mfa` acoustic model is missing from the active conda environment.
+- Diagnosed the next MFA failure: `english_mfa` loads, but MFA/Kalpy appear version-incompatible during graph compilation and the repo Librispeech lexicon does not match the `english_mfa` phone set.
+- Updated SAPC v1/v2 MFA configs to use the matching `english_us_mfa` dictionary model instead of the repo Librispeech lexicon.
 
 ## 2026-07-04
 
