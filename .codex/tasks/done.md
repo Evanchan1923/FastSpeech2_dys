@@ -18,6 +18,9 @@
 - Diagnosed the next `fastspeech2_v1.log`: SAPC preparation completed and MFA failed during graph compilation due to an MFA/Kalpy `use_g2p` API mismatch.
 - Added a PBS preflight and setup-doc smoke check for the MFA/Kalpy graph compiler signature, with the conda update command to repair the environment.
 - Passed `--num_jobs` to MFA from the configured runtime CPU count so MFA does not exceed the PBS CPU allocation.
+- Confirmed the next `fastspeech2_v1.log` stopped early at the new MFA/Kalpy preflight, before expensive SAPC preparation or MFA alignment.
+- Corrected the MFA/Kalpy repair command from `conda update` to `conda install` because the CPU Kaldi build selector is an install spec.
+- Relaxed the MFA/Kalpy preflight for MFA 3.4.0 so it only rejects environments where MFA actually passes `use_g2p` into Kalpy's graph compiler.
 
 ## 2026-07-04
 

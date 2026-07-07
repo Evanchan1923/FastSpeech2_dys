@@ -61,13 +61,22 @@ Check that MFA and Kalpy are ABI/API-compatible before submitting PBS:
 ```bash
 python - <<'PY'
 import inspect
+import re
+from pathlib import Path
+import montreal_forced_aligner
 from kalpy.decoder.training_graphs import TrainingGraphCompiler
 
-params = inspect.signature(TrainingGraphCompiler).parameters
-if "use_g2p" not in params:
+kalpy_accepts_use_g2p = "use_g2p" in inspect.signature(TrainingGraphCompiler).parameters
+mfa_root = Path(montreal_forced_aligner.__file__).parent
+mfa_passes_use_g2p = any(
+    re.search(r"TrainingGraphCompiler\([^)]*use_g2p\s*=", path.read_text(errors="ignore"), re.DOTALL)
+    for path in mfa_root.rglob("*.py")
+)
+
+if mfa_passes_use_g2p and not kalpy_accepts_use_g2p:
     raise SystemExit(
         "MFA/Kalpy mismatch: run "
-        "conda update -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps"
+        "conda install -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps"
     )
 print("MFA/Kalpy graph compiler check passed.")
 PY
@@ -77,7 +86,7 @@ If MFA fails with `TrainingGraphCompiler.__init__() got an unexpected keyword
 argument 'use_g2p'`, update MFA, Kalpy, and CPU Kaldi together:
 
 ```bash
-conda update -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps
+conda install -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps
 ```
 
 Download the acoustic model used by the SAPC configs:
@@ -187,11 +196,20 @@ subprocess.run(["mfa", "version"], check=True)
 print("MFA:", mfa_path)
 
 from kalpy.decoder.training_graphs import TrainingGraphCompiler
-params = inspect.signature(TrainingGraphCompiler).parameters
-if "use_g2p" not in params:
+import re
+import montreal_forced_aligner
+
+kalpy_accepts_use_g2p = "use_g2p" in inspect.signature(TrainingGraphCompiler).parameters
+mfa_root = Path(montreal_forced_aligner.__file__).parent
+mfa_passes_use_g2p = any(
+    re.search(r"TrainingGraphCompiler\([^)]*use_g2p\s*=", path.read_text(errors="ignore"), re.DOTALL)
+    for path in mfa_root.rglob("*.py")
+)
+
+if mfa_passes_use_g2p and not kalpy_accepts_use_g2p:
     raise SystemExit(
         "MFA/Kalpy mismatch: run "
-        "conda update -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps"
+        "conda install -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps"
     )
 
 for label, config_path, pbs_path in jobs:

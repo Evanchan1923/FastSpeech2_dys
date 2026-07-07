@@ -183,19 +183,31 @@ if [[ "${RUN_MFA}" == "1" ]]; then
 
   python - <<'PY'
 import inspect
+import re
 import sys
+from pathlib import Path
 
 try:
+    import montreal_forced_aligner
     from kalpy.decoder.training_graphs import TrainingGraphCompiler
 except Exception as exc:
-    print("[ERROR] Could not import Kalpy TrainingGraphCompiler: {}".format(exc))
+    print("[ERROR] Could not import MFA/Kalpy graph compiler modules: {}".format(exc))
     sys.exit(1)
 
-parameters = inspect.signature(TrainingGraphCompiler).parameters
-if "use_g2p" not in parameters:
+kalpy_accepts_use_g2p = "use_g2p" in inspect.signature(TrainingGraphCompiler).parameters
+mfa_root = Path(montreal_forced_aligner.__file__).parent
+mfa_passes_use_g2p = False
+
+for path in mfa_root.rglob("*.py"):
+    text = path.read_text(errors="ignore")
+    if re.search(r"TrainingGraphCompiler\([^)]*use_g2p\s*=", text, re.DOTALL):
+        mfa_passes_use_g2p = True
+        break
+
+if mfa_passes_use_g2p and not kalpy_accepts_use_g2p:
     print("[ERROR] MFA/Kalpy version mismatch: Kalpy TrainingGraphCompiler does not accept 'use_g2p'.")
     print("[ERROR] Repair the conda env with:")
-    print("[ERROR]   conda update -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps")
+    print("[ERROR]   conda install -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps")
     sys.exit(1)
 PY
 fi
