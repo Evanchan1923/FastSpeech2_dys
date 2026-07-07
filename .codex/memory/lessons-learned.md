@@ -6,6 +6,8 @@
 - `mfa version` only confirms the MFA executable works; `mfa align` also needs the configured acoustic model downloaded, such as `mfa model download acoustic english_mfa`.
 - MFA alignment can still fail after model download if `montreal-forced-aligner` and `kalpy` are version-incompatible; `TrainingGraphCompiler.__init__() got an unexpected keyword argument 'use_g2p'` points to that package mismatch.
 - Pair MFA acoustic models with compatible MFA dictionaries, for example `english_mfa` with `english_us_mfa`, instead of using the repo Librispeech lexicon when MFA reports many dictionary phones missing from the acoustic model.
+- Newer `librosa.resample` versions require keyword sample-rate arguments; use `orig_sr=` and `target_sr=` instead of positional sample rates.
+- Keep `fastspeech2_v1.log` visible in git when debugging server PBS runs, because the user wants this diagnostic log included.
 
 ## 2026-07-03
 

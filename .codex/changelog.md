@@ -8,6 +8,9 @@
 - Kept MFA out of `requirements.txt`; MFA is provided by the conda environment.
 - Tightened the PBS MFA preflight so a broken `mfa version` stops before data preparation.
 - Trimmed non-essential PBS diagnostics while keeping the conda activation and MFA startup preflight.
+- Fixed SAPC audio resampling with newer `librosa` by passing `orig_sr` and `target_sr` as keyword arguments.
+- Kept `fastspeech2_v1.log` tracked as the current server run diagnostic log.
+- Aligned v1 YAML `omp_num_threads` with the one-CPU `fastSpeech2_v1.pbs` allocation before resubmission.
 
 ## 2026-07-04
 

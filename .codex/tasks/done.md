@@ -11,6 +11,10 @@
 - Diagnosed `fastspeech2_v1.log`: MFA starts, but the `english_mfa` acoustic model is missing from the active conda environment.
 - Diagnosed the next MFA failure: `english_mfa` loads, but MFA/Kalpy appear version-incompatible during graph compilation and the repo Librispeech lexicon does not match the `english_mfa` phone set.
 - Updated SAPC v1/v2 MFA configs to use the matching `english_us_mfa` dictionary model instead of the repo Librispeech lexicon.
+- Diagnosed tracked `fastspeech2_v1.log`: alignment data preparation now reaches SAPC audio loading, then fails on the newer `librosa.resample` keyword-only API.
+- Updated SAPC audio resampling to use `orig_sr` and `target_sr` keyword arguments for newer conda `librosa` versions.
+- Confirmed `fastspeech2_v1.log` should remain tracked for server run diagnostics.
+- Ran pre-qsub checks for v1/v2 PBS syntax, SAPC YAML shape, and the resampling call; aligned v1 `omp_num_threads` with its one-CPU PBS allocation.
 
 ## 2026-07-04
 

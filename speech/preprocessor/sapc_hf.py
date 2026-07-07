@@ -147,7 +147,7 @@ def _load_audio(row, dataset_root, sampling_rate):
     if wav.ndim == 2:
         wav = wav.mean(axis=1)
     if source_sr != sampling_rate:
-        wav = librosa.resample(wav, source_sr, sampling_rate)
+        wav = librosa.resample(wav, orig_sr=source_sr, target_sr=sampling_rate)
     return np.asarray(wav, dtype=np.float32)
 
 

@@ -11,9 +11,11 @@
 - Pipeline stages are prepare HuggingFace rows to FastSpeech2 raw `.wav`/`.lab`, run MFA for TextGrid alignments, preprocess acoustic features, train FastSpeech2, then generate dev-set samples.
 - MFA alignment uses `run.mfa.bin` from the SAPC YAML, the `english_mfa` acoustic model, and the `english_us_mfa` dictionary model; `mfa version` currently reports `3.3.9` from the `FastSpeech_tts` conda environment, and the PBS script preflights MFA before preparing alignment data.
 - SAPC audio loading avoids torchcodec; the adapter reads HuggingFace `bytes`, `array`, or `path` fields with `soundfile` and uses `librosa` only for resampling.
+- `fastspeech2_v1.log` is intentionally tracked so server PBS failures can be reviewed in-repo.
 - Training auto-resume is the default when `run.training.restore_step` is omitted. `"latest"` or `"auto"` picks the newest numeric checkpoint in the run checkpoint folder. If none exists, training starts at step 0 and uses `run.training.pretrained_checkpoint` when configured.
 - Training from scratch still uses `training.restore_step: 0` with no pretrained checkpoint. Resuming can use a checkpoint step from the same run. Fine-tuning uses a checkpoint from another dataset or broader model, such as the LJSpeech checkpoint.
 - Runtime CPU/GPU settings for the training script are stored as `train.resources.ncpu` and `train.resources.ngpu` in `config/SAPC_subset001/fastSpeech2_v1.yaml`; scheduler-only values such as select, memory, and walltime stay in `fastSpeech2_v1.pbs`.
+- Keep `train.resources.omp_num_threads` no higher than the PBS CPU allocation for the matching PBS file.
 - SAPC training reports losses at `step.report_step`, currently `5000`, while synthesis, validation, and save cadence remain controlled by their existing step settings.
 - The pipeline summary is stored at `docs/PIPELINE_SUMMARY.md`; Katana conda setup is documented in `docs/PBS_CONDA_SETUP.md`.
 - Repository lexicons are stored under `text/lexicon/`.
