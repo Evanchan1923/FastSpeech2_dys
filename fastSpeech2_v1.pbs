@@ -180,6 +180,24 @@ if [[ "${RUN_MFA}" == "1" ]]; then
     echo "[ERROR] MFA exists but cannot start. Check the active conda environment."
     exit 1
   fi
+
+  python - <<'PY'
+import inspect
+import sys
+
+try:
+    from kalpy.decoder.training_graphs import TrainingGraphCompiler
+except Exception as exc:
+    print("[ERROR] Could not import Kalpy TrainingGraphCompiler: {}".format(exc))
+    sys.exit(1)
+
+parameters = inspect.signature(TrainingGraphCompiler).parameters
+if "use_g2p" not in parameters:
+    print("[ERROR] MFA/Kalpy version mismatch: Kalpy TrainingGraphCompiler does not accept 'use_g2p'.")
+    print("[ERROR] Repair the conda env with:")
+    print("[ERROR]   conda update -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps")
+    sys.exit(1)
+PY
 fi
 
 # ============================================================
@@ -203,6 +221,7 @@ if [[ "${RUN_MFA}" == "1" ]]; then
     "${MFA_DICTIONARY}" \
     "${MFA_ACOUSTIC_MODEL}" \
     "${PREPROCESSED_PATH}" \
+    --num_jobs "${FASTSPEECH2_NCPU}" \
     --clean \
     --overwrite
 else

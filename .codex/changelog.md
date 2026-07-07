@@ -11,6 +11,9 @@
 - Fixed SAPC audio resampling with newer `librosa` by passing `orig_sr` and `target_sr` as keyword arguments.
 - Kept `fastspeech2_v1.log` tracked as the current server run diagnostic log.
 - Aligned v1 YAML `omp_num_threads` with the one-CPU `fastSpeech2_v1.pbs` allocation before resubmission.
+- Added an MFA/Kalpy compatibility preflight for the `use_g2p` graph-compiler API mismatch.
+- Updated the conda setup smoke test with the same MFA/Kalpy check and repair command.
+- Limited MFA alignment jobs to the configured runtime CPU count.
 
 ## 2026-07-04
 

@@ -8,6 +8,7 @@
 - Pair MFA acoustic models with compatible MFA dictionaries, for example `english_mfa` with `english_us_mfa`, instead of using the repo Librispeech lexicon when MFA reports many dictionary phones missing from the acoustic model.
 - Newer `librosa.resample` versions require keyword sample-rate arguments; use `orig_sr=` and `target_sr=` instead of positional sample rates.
 - Keep `fastspeech2_v1.log` visible in git when debugging server PBS runs, because the user wants this diagnostic log included.
+- When fixing MFA conda-package mismatches, update `montreal-forced-aligner`, `kalpy`, and CPU `kaldi` together instead of changing only the MFA package.
 
 ## 2026-07-03
 

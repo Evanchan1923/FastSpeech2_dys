@@ -15,6 +15,9 @@
 - Updated SAPC audio resampling to use `orig_sr` and `target_sr` keyword arguments for newer conda `librosa` versions.
 - Confirmed `fastspeech2_v1.log` should remain tracked for server run diagnostics.
 - Ran pre-qsub checks for v1/v2 PBS syntax, SAPC YAML shape, and the resampling call; aligned v1 `omp_num_threads` with its one-CPU PBS allocation.
+- Diagnosed the next `fastspeech2_v1.log`: SAPC preparation completed and MFA failed during graph compilation due to an MFA/Kalpy `use_g2p` API mismatch.
+- Added a PBS preflight and setup-doc smoke check for the MFA/Kalpy graph compiler signature, with the conda update command to repair the environment.
+- Passed `--num_jobs` to MFA from the configured runtime CPU count so MFA does not exceed the PBS CPU allocation.
 
 ## 2026-07-04
 

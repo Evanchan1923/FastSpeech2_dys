@@ -49,11 +49,35 @@ python -m pip install --force-reinstall setuptools==68.2.2
 ## 3. Check Montreal Forced Aligner
 
 MFA is provided by the conda environment. A valid setup should show the conda env
-`mfa` executable and print version `3.3.9`.
+`mfa` executable and print a 3.x version.
 
 ```bash
 which mfa
 mfa version
+```
+
+Check that MFA and Kalpy are ABI/API-compatible before submitting PBS:
+
+```bash
+python - <<'PY'
+import inspect
+from kalpy.decoder.training_graphs import TrainingGraphCompiler
+
+params = inspect.signature(TrainingGraphCompiler).parameters
+if "use_g2p" not in params:
+    raise SystemExit(
+        "MFA/Kalpy mismatch: run "
+        "conda update -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps"
+    )
+print("MFA/Kalpy graph compiler check passed.")
+PY
+```
+
+If MFA fails with `TrainingGraphCompiler.__init__() got an unexpected keyword
+argument 'use_g2p'`, update MFA, Kalpy, and CPU Kaldi together:
+
+```bash
+conda update -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps
 ```
 
 Download the acoustic model used by the SAPC configs:
@@ -133,6 +157,7 @@ Paste this after activating the conda env:
 ```bash
 python - <<'PY'
 from pathlib import Path
+import inspect
 import shutil
 import subprocess
 import sys
@@ -160,6 +185,14 @@ if not mfa_path:
     raise SystemExit("mfa is not on PATH; activate the FastSpeech_tts conda env first.")
 subprocess.run(["mfa", "version"], check=True)
 print("MFA:", mfa_path)
+
+from kalpy.decoder.training_graphs import TrainingGraphCompiler
+params = inspect.signature(TrainingGraphCompiler).parameters
+if "use_g2p" not in params:
+    raise SystemExit(
+        "MFA/Kalpy mismatch: run "
+        "conda update -c conda-forge montreal-forced-aligner kalpy 'kaldi=*=cpu*' --update-deps"
+    )
 
 for label, config_path, pbs_path in jobs:
     subprocess.run(["bash", "-n", str(pbs_path)], check=True)
