@@ -24,6 +24,8 @@
 - Diagnosed the next `fastspeech2_v1.log`: MFA completed and exported 449 TextGrids, then preprocessing failed on newer `librosa.util.pad_center` keyword-only arguments.
 - Updated audio preprocessing/STFT `librosa` calls to use keyword arguments for `pad_center`, mel filter construction, and legacy dataset audio loading.
 - Optimized durable memory to reflect the current MFA 3.4.0 compatibility preflight and keyword-only-safe `librosa` preprocessing.
+- Diagnosed the next `fastspeech2_v1.log`: MFA completed again, then preprocessing tried to treat `sapc_hf_manifest.jsonl` in `raw_path` as a speaker directory.
+- Updated preprocessing to iterate only real speaker directories under `raw_path`.
 
 ## 2026-07-04
 

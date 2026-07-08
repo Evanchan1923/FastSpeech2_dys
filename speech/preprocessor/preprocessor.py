@@ -63,8 +63,13 @@ class Preprocessor:
         energy_scaler = StandardScaler()
 
         # Compute pitch, energy, duration, and mel-spectrogram
+        speaker_names = [
+            name
+            for name in sorted(os.listdir(self.in_dir))
+            if os.path.isdir(os.path.join(self.in_dir, name))
+        ]
         speakers = {}
-        for i, speaker in enumerate(tqdm(os.listdir(self.in_dir))):
+        for i, speaker in enumerate(tqdm(speaker_names)):
             speakers[speaker] = i
             for wav_name in os.listdir(os.path.join(self.in_dir, speaker)):
                 if ".wav" not in wav_name:
