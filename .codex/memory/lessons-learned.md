@@ -8,6 +8,7 @@
 - Pair MFA acoustic models with compatible MFA dictionaries, for example `english_mfa` with `english_us_mfa`, instead of using the repo Librispeech lexicon when MFA reports many dictionary phones missing from the acoustic model.
 - Newer `librosa` versions require keyword-only arguments for several APIs: use `orig_sr=`/`target_sr=` for `resample`, `size=` for `pad_center`, `sr=` for `load`, and named mel-filter arguments.
 - SAPC `raw_path` can contain helper files such as `sapc_hf_manifest.jsonl`; preprocessing should only treat directories under `raw_path` as speakers.
+- FastSpeech2 preprocessing expects TextGrids under `preprocessed_path/TextGrid/<speaker>/`; PBS should pass `${PREPROCESSED_PATH}/TextGrid` as the MFA output directory.
 - Keep `fastspeech2_v1.log` visible in git when debugging server PBS runs, because the user wants this diagnostic log included.
 - When fixing MFA conda-package mismatches, install/update `montreal-forced-aligner`, `kalpy`, and CPU `kaldi` together; use `conda install` when specifying a build selector such as `kaldi=*=cpu*`.
 

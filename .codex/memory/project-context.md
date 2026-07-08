@@ -8,7 +8,7 @@
 - SAPC runs set the target speaker in `config/SAPC_subset001/fastSpeech2_v1.yaml` using `run.speaker: "<speaker_id>"`, then submit with `qsub fastSpeech2_v1.pbs`.
 - Multi-speaker SAPC runs use `fastSpeech2_v2.yaml` with `model.multi_speaker: True`, `run.speakers` reused as the train/dev speaker filter, shared multi-speaker paths, and submit with `qsub fastSpeech2_v2.pbs`.
 - Current server paths are `/srv/scratch/speechdata/jinghao/fastSpeech2_tts_model` for model/vocoder assets, `/srv/scratch/speechdata/jinghao/fastSpeech2_result` for training outputs, and `/srv/scratch/speechdata/speech-corpora/dysarthric/SAPC_HF/SAPC_fastSpeech2TTS` for training/intermediate data.
-- Pipeline stages are prepare HuggingFace rows to FastSpeech2 raw `.wav`/`.lab`, run MFA for TextGrid alignments, preprocess acoustic features, train FastSpeech2, then generate dev-set samples.
+- Pipeline stages are prepare HuggingFace rows to FastSpeech2 raw `.wav`/`.lab`, run MFA into `preprocessed_path/TextGrid`, preprocess acoustic features, train FastSpeech2, then generate dev-set samples.
 - MFA alignment uses `run.mfa.bin` from the SAPC YAML, the `english_mfa` acoustic model, and the `english_us_mfa` dictionary model; Katana currently uses MFA `3.4.0`, and the PBS script preflights whether installed MFA actually passes `use_g2p` into Kalpy before preparing alignment data.
 - SAPC audio loading avoids torchcodec; the adapter reads HuggingFace `bytes`, `array`, or `path` fields with `soundfile` and uses keyword-only-safe `librosa` calls for resampling and feature preprocessing.
 - `fastspeech2_v1.log` is intentionally tracked so server PBS failures can be reviewed in-repo.

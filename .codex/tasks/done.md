@@ -26,6 +26,8 @@
 - Optimized durable memory to reflect the current MFA 3.4.0 compatibility preflight and keyword-only-safe `librosa` preprocessing.
 - Diagnosed the next `fastspeech2_v1.log`: MFA completed again, then preprocessing tried to treat `sapc_hf_manifest.jsonl` in `raw_path` as a speaker directory.
 - Updated preprocessing to iterate only real speaker directories under `raw_path`.
+- Diagnosed the next full-from-beginning `fastspeech2_v1.log`: prepare-align and MFA ran from scratch, but MFA exported TextGrids directly into `preprocessed_path` while preprocessing expects `preprocessed_path/TextGrid/<speaker>`.
+- Updated `fastSpeech2_v1.pbs` to send MFA output to `${PREPROCESSED_PATH}/TextGrid` and fail early if MFA produces no `.TextGrid` files.
 
 ## 2026-07-04
 

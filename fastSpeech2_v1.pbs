@@ -163,6 +163,7 @@ fi
 mkdir -p \
   "${RAW_PATH}" \
   "${PREPROCESSED_PATH}" \
+  "${PREPROCESSED_PATH}/TextGrid" \
   "${CKPT_PATH}" \
   "${LOG_PATH}" \
   "${RESULT_PATH}"
@@ -232,10 +233,15 @@ if [[ "${RUN_MFA}" == "1" ]]; then
     "${RAW_PATH}" \
     "${MFA_DICTIONARY}" \
     "${MFA_ACOUSTIC_MODEL}" \
-    "${PREPROCESSED_PATH}" \
+    "${PREPROCESSED_PATH}/TextGrid" \
     --num_jobs "${FASTSPEECH2_NCPU}" \
     --clean \
     --overwrite
+
+  if ! find "${PREPROCESSED_PATH}/TextGrid" -name '*.TextGrid' -print -quit | grep -q .; then
+    echo "[ERROR] MFA finished but no TextGrid files were found under ${PREPROCESSED_PATH}/TextGrid"
+    exit 1
+  fi
 else
   echo "[INFO] RUN_MFA=0, skipping MFA"
 fi
