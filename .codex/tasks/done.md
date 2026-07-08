@@ -21,6 +21,9 @@
 - Confirmed the next `fastspeech2_v1.log` stopped early at the new MFA/Kalpy preflight, before expensive SAPC preparation or MFA alignment.
 - Corrected the MFA/Kalpy repair command from `conda update` to `conda install` because the CPU Kaldi build selector is an install spec.
 - Relaxed the MFA/Kalpy preflight for MFA 3.4.0 so it only rejects environments where MFA actually passes `use_g2p` into Kalpy's graph compiler.
+- Diagnosed the next `fastspeech2_v1.log`: MFA completed and exported 449 TextGrids, then preprocessing failed on newer `librosa.util.pad_center` keyword-only arguments.
+- Updated audio preprocessing/STFT `librosa` calls to use keyword arguments for `pad_center`, mel filter construction, and legacy dataset audio loading.
+- Optimized durable memory to reflect the current MFA 3.4.0 compatibility preflight and keyword-only-safe `librosa` preprocessing.
 
 ## 2026-07-04
 

@@ -16,6 +16,7 @@
 - Limited MFA alignment jobs to the configured runtime CPU count.
 - Corrected the documented MFA/Kalpy repair command to use `conda install` for the CPU Kaldi build selector.
 - Relaxed the MFA/Kalpy preflight so MFA 3.4.0 can pass when its graph compiler call no longer forwards `use_g2p`.
+- Fixed remaining audio preprocessing `librosa` calls that require keyword-only arguments in newer conda environments.
 
 ## 2026-07-04
 

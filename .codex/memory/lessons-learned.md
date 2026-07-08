@@ -4,9 +4,9 @@
 
 - On Katana, the conda-forge MFA install is the reliable path for `mfa version 3.3.9`; keep PBS conda activation and MFA preflight in sync.
 - `mfa version` only confirms the MFA executable works; `mfa align` also needs the configured acoustic model downloaded, such as `mfa model download acoustic english_mfa`.
-- MFA alignment can still fail after model download if `montreal-forced-aligner` and `kalpy` are version-incompatible; `TrainingGraphCompiler.__init__() got an unexpected keyword argument 'use_g2p'` points to that package mismatch.
+- MFA alignment can still fail after model download if `montreal-forced-aligner` and `kalpy` are version-incompatible; only reject `use_g2p` when installed MFA actually passes it into Kalpy's `TrainingGraphCompiler`.
 - Pair MFA acoustic models with compatible MFA dictionaries, for example `english_mfa` with `english_us_mfa`, instead of using the repo Librispeech lexicon when MFA reports many dictionary phones missing from the acoustic model.
-- Newer `librosa.resample` versions require keyword sample-rate arguments; use `orig_sr=` and `target_sr=` instead of positional sample rates.
+- Newer `librosa` versions require keyword-only arguments for several APIs: use `orig_sr=`/`target_sr=` for `resample`, `size=` for `pad_center`, `sr=` for `load`, and named mel-filter arguments.
 - Keep `fastspeech2_v1.log` visible in git when debugging server PBS runs, because the user wants this diagnostic log included.
 - When fixing MFA conda-package mismatches, install/update `montreal-forced-aligner`, `kalpy`, and CPU `kaldi` together; use `conda install` when specifying a build selector such as `kaldi=*=cpu*`.
 
